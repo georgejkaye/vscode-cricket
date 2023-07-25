@@ -1,5 +1,5 @@
 import axios from "axios";
-import { xml2js } from "xml-js"
+import { xml2js } from "xml-js";
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
@@ -14,6 +14,7 @@ interface Ball {
     dismissal: string
     extras: string
     deliveryNo: string
+    uniqueDeliveryNo: string
     players: string
     event: string
 }
@@ -30,8 +31,8 @@ export const getMatchData = async (id : string) => {
     let response = await axios.get(url);
     let data = response.data;
 
-    let comms : any[] = data.comms
-    let recentOvers : any[] = data.live.recent_overs
+    let comms : any[] = data.comms;
+    let recentOvers : any[] = data.live.recent_overs;
 
     let deliveries = recentOvers.reverse().map((over : any[], overNumber) => {
         let overComms = comms[overNumber];
@@ -44,14 +45,15 @@ export const getMatchData = async (id : string) => {
                 extras: ball.extras,
                 event: ballComms.event,
                 players: ballComms.players,
-                deliveryNo: ballComms.overs_actual
+                deliveryNo: ballComms.overs_actual,
+                uniqueDeliveryNo: ballComms.overs_unique
             };
         });
     });
     let innings = data.innings;
     let currentInnings = innings[innings.length - 1];
-    let battingTeamId = currentInnings.battingTeamId
-    let battingTeamName = data.team[0].contentId === battingTeamId ? data.team[0].team_name : data.team[1].team_name
+    let battingTeamId = currentInnings.battingTeamId;
+    let battingTeamName = data.team[0].contentId === battingTeamId ? data.team[0].team_name : data.team[1].team_name;
     return <Data>{
         balls: deliveries.flat(),
         runs: currentInnings.runs,

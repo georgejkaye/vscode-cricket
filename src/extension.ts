@@ -42,8 +42,8 @@ export function activate(context: vscode.ExtensionContext) {
 			let data = await getMatchData(currentMatch);
 			let lastBall = data.balls[0];
 			let lastDelivery = context.globalState.get(lastDeliveryKey);
-			if(!lastDelivery || lastDelivery !== lastBall.deliveryNo){
-				context.globalState.update(lastDeliveryKey, lastBall.deliveryNo)
+			if(!lastDelivery || lastDelivery !== lastBall.uniqueDeliveryNo){
+				context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
 				vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.players} (${lastBall.event}). ${data.batting} are ${data.runs}/${data.wickets}.`);
 			}
 		}
