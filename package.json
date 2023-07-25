@@ -17,6 +17,11 @@
         "command": "vscode-cricket.followMatch",
         "title": "Follow match",
         "category": "Cricket"
+      },
+      {
+        "command": "vscode-cricket.stopFollowMatch",
+        "title": "Stop following match",
+        "category": "Cricket"
       }
     ]
   },

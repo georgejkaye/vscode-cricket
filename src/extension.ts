@@ -27,7 +27,12 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	});
 
+	let stopFollowMatch = vscode.commands.registerCommand('vscode-cricket.stopFollowMatch', async () => {
+		context.globalState.update(currentMatchKey, undefined);
+	});
+
 	context.subscriptions.push(followMatch);
+	context.subscriptions.push(stopFollowMatch);
 
 	const updateSeconds = 5;
 
