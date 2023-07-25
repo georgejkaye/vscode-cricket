@@ -5,7 +5,7 @@ const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
 interface Match {
     label: string
-    id: number
+    id: string
 }
 
 interface Ball {
@@ -19,11 +19,17 @@ interface Ball {
     event: string
 }
 
-interface Data {
+interface Team {
+    name: string,
+    shortName: string
+}
+
+export interface Data {
     balls: Ball[]
-    batting: string
+    batting: number
     runs: number
     wickets: number
+    teams: Team[]
 }
 
 export const getMatchData = async (id : string) => {
@@ -40,7 +46,7 @@ export const getMatchData = async (id : string) => {
             let ballComms = overComms.ball[ballNumber];
             return {
                 runs: ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball,
-                indicator: ball.ball,
+                indicator: ball.ball === "&bull;" ? "•" : ball.ball,
                 dismissal: ball.delivery,
                 extras: ball.extras,
                 event: ballComms.event,
@@ -53,12 +59,16 @@ export const getMatchData = async (id : string) => {
     let innings = data.innings;
     let currentInnings = innings[innings.length - 1];
     let battingTeamId = currentInnings.battingTeamId;
-    let battingTeamName = data.team[0].contentId === battingTeamId ? data.team[0].team_name : data.team[1].team_name;
+    let battingTeamNo = data.team[0].contentId === battingTeamId ? 0 : 1;
     return <Data>{
         balls: deliveries.flat(),
         runs: currentInnings.runs,
         wickets: currentInnings.wickets,
-        batting: battingTeamName
+        batting: battingTeamNo,
+        teams: [
+            {name: data.team[0].team_name, shortName: data.team[0].team_abbreviation},
+            {name: data.team[1].team_name, shortName: data.team[1].team_abbreviation}
+        ]
     };
 };
 
