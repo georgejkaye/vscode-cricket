@@ -14,8 +14,9 @@
   "contributes": {
     "commands": [
       {
-        "command": "vscode-cricket.helloWorld",
-        "title": "Hello World"
+        "command": "vscode-cricket.followMatch",
+        "title": "Follow match",
+        "category": "Cricket"
       }
     ]
   },

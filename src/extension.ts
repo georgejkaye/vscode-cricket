@@ -14,15 +14,11 @@ export function activate(context: vscode.ExtensionContext) {
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
 	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('vscode-cricket.helloWorld', async () => {
+	let followMatch = vscode.commands.registerCommand('vscode-cricket.followMatch', async () => {
 		let matches = await getSummary();
-		let quickPick = vscode.window.createQuickPick();
-		quickPick.items = matches.map(match  => ({ label: match.title }));
-		quickPick.onDidHide(() => quickPick.dispose());
-		quickPick.show();
 	});
 
-	context.subscriptions.push(disposable);
+	context.subscriptions.push(followMatch);
 }
 
 // This method is called when your extension is deactivated
