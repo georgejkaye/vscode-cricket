@@ -2,6 +2,7 @@
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
 import { getMatchData, getSummary, Data, Ball, Event, Team, Innings } from './tasks';
+import { getDismissalString } from './dismissal';
 
 let recentBallsStatusBarItem : vscode.StatusBarItem;
 let gameSummaryStatusBarItem : vscode.StatusBarItem;
@@ -45,7 +46,7 @@ const notifyEvent = (event: Event, ball: Ball, data : Data) => {
 	let text =
 		event === Event.Four ? `FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
 		event === Event.Six ? `SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
-		event === Event.Wicket ? `OUT! ${ball.dismissal} ${getInningsScore(data, currentInnings)}`:
+		event === Event.Wicket ? `OUT! ${getDismissalString(ball.dismissal)} ${getInningsScore(data, currentInnings)}`:
 		"";
 	if(text !== "") {
 		vscode.window.showInformationMessage(text);

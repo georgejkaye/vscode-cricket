@@ -1,5 +1,6 @@
 import axios from "axios";
 import { xml2js } from "xml-js";
+import { Dismissal, parseDismissal } from "./dismissal";
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
@@ -17,7 +18,7 @@ export enum Event {
 export interface Ball {
     runs : number
     indicator: string
-    dismissal: string
+    dismissal: Dismissal
     extras: string
     deliveryNo: string
     uniqueDeliveryNo: string
@@ -76,7 +77,7 @@ export const getMatchData = async (id : string) => {
                 events.push(Event.Six);
             }
 
-            let dismissalText = ballComms.dismissal.replace("  ", " ");
+            let dismissal = parseDismissal(ballComms.dismissal.replace("  ", " "));
             let deliveryText = ballComms.players;
             let deliveryPlayers = deliveryText.split(" to ");
             let bowler = deliveryPlayers[0].trim();
@@ -85,7 +86,7 @@ export const getMatchData = async (id : string) => {
             return <Ball>{
                 runs: runs,
                 indicator: ballIndicator,
-                dismissal: dismissalText,
+                dismissal: dismissal,
                 extras: ball.extras,
                 deliveryNo: ballComms.overs_actual,
                 uniqueDeliveryNo: ballComms.overs_unique,
