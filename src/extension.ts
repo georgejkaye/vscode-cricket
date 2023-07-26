@@ -1,16 +1,55 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { getMatchData, getSummary, Data } from './tasks';
+import { getMatchData, getSummary, Data, Ball, Event, Team, Innings } from './tasks';
 
-let statusBarItem : vscode.StatusBarItem
+let recentBallsStatusBarItem : vscode.StatusBarItem;
+let gameSummaryStatusBarItem : vscode.StatusBarItem;
 
 const noBallsShown = 6;
 
-const updateStatusBarItem = (data : Data) => {
+const updateRecentBallsStatusBar = (data : Data) => {
 	let shownBalls = data.balls.slice(0, noBallsShown);
 	let shownBallsText = shownBalls.map((ball) => ball.indicator).join(" | ");
-	statusBarItem.text = `${data.teams[0].shortName} vs ${data.teams[1].shortName} (${data.balls[0].deliveryNo}) | ${shownBallsText} | ${data.runs}/${data.wickets}`;
+	recentBallsStatusBarItem.text = shownBallsText;
+};
+
+const getInningsScore = (data : Data, inn : Innings) => {
+	if(inn.status === "all out") {
+		return `${inn.runs}`;
+	}
+	if(inn.status === "declared") {
+		return `${inn.runs}d`;
+	}
+	if(inn.status === "complete") {
+		return `${inn.runs}/${inn.wickets}`;
+	}
+	return `${inn.runs}/${inn.wickets}* (${data.balls[0].deliveryNo})`;
+};
+
+const getTeamScore = (data : Data, innings: Innings[], team : Team) => {
+	let teamInnings = innings.filter((inn) => inn.batting === team.id);
+	return teamInnings.map((inn) => getInningsScore(data, inn)).join(" & ");
+};
+
+const updateGameSummaryStatusBar = (data : Data) => {
+	const getTeamName = (team : Team) => team.shortName;
+	const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(data, data.innings, team)}`;
+	let summaryText = `${getTeamSummary(data.teams[0])} vs ${getTeamSummary(data.teams[1])}`;
+	gameSummaryStatusBarItem.text = summaryText;
+};
+
+const notifyEvent = (event: Event, ball: Ball, data : Data) => {
+	let battingTeam = data.teams[data.currentBatting];
+	let currentInnings = data.innings[data.currentInnings];
+	let text =
+		event === Event.Four ? `FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+		event === Event.Six ? `SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+		event === Event.Wicket ? `OUT! ${ball.dismissal} ${getInningsScore(data, currentInnings)}`:
+		"";
+	if(text !== "") {
+		vscode.window.showInformationMessage(text);
+	}
 };
 
 // This method is called when your extension is activated
@@ -35,20 +74,27 @@ export function activate(context: vscode.ExtensionContext) {
 		if(option) {
 			context.globalState.update(currentMatchKey, option.id);
 			let data = await getMatchData(option.id);
-			updateStatusBarItem(data);
-			statusBarItem.show();
+			updateGameSummaryStatusBar(data);
+			updateRecentBallsStatusBar(data);
+			recentBallsStatusBarItem.show();
+			gameSummaryStatusBarItem.show();
 		}
 	});
 
 	let stopFollowMatch = vscode.commands.registerCommand('vscode-cricket.stopFollowMatch', async () => {
 		context.globalState.update(currentMatchKey, undefined);
-		statusBarItem.hide();
+		recentBallsStatusBarItem.hide();
+		gameSummaryStatusBarItem.hide();
 	});
 
-	statusBarItem = vscode.window.createStatusBarItem(
+	gameSummaryStatusBarItem = vscode.window.createStatusBarItem(
+		vscode.StatusBarAlignment.Right, 200
+	);
+	recentBallsStatusBarItem = vscode.window.createStatusBarItem(
 		vscode.StatusBarAlignment.Right, 100
 	);
-	context.subscriptions.push(statusBarItem);
+	context.subscriptions.push(gameSummaryStatusBarItem);
+	context.subscriptions.push(recentBallsStatusBarItem);
 
 	context.subscriptions.push(followMatch);
 	context.subscriptions.push(stopFollowMatch);
@@ -59,12 +105,15 @@ export function activate(context: vscode.ExtensionContext) {
 		let currentMatch : string | undefined = context.globalState.get(currentMatchKey);
 		if(currentMatch) {
 			let data = await getMatchData(currentMatch);
+			console.log(data)
 			let lastBall = data.balls[0];
 			let lastDelivery = context.globalState.get(lastDeliveryKey);
 			if(!lastDelivery || lastDelivery !== lastBall.uniqueDeliveryNo){
 				context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
-				vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.players} (${lastBall.event}). ${data.teams[data.batting].shortName} are ${data.runs}/${data.wickets}.`);
-				updateStatusBarItem(data);
+				// vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.deliveryText} (${lastBall.runsText}). ${data.teams[data.batting].shortName} are ${data.runs}/${data.wickets}.`);
+				lastBall.events.forEach((event) => notifyEvent(event, lastBall, data));
+				updateGameSummaryStatusBar(data);
+				updateRecentBallsStatusBar(data);
 			}
 		}
 	}, updateSeconds * 1000);

@@ -8,28 +8,46 @@ interface Match {
     id: string
 }
 
-interface Ball {
+export enum Event {
+    Four,
+    Six,
+    Wicket
+}
+
+export interface Ball {
     runs : number
     indicator: string
     dismissal: string
     extras: string
     deliveryNo: string
     uniqueDeliveryNo: string
-    players: string
-    event: string
+    deliveryText: string
+    runsText: string
+    batter: string
+    bowler: string
+    events: Event[]
 }
 
-interface Team {
-    name: string,
+export interface Innings {
+    batting: number
+    bowling: number
+    runs: number
+    wickets: number
+    status: string
+}
+
+export interface Team {
+    id: number
+    name: string
     shortName: string
 }
 
 export interface Data {
     balls: Ball[]
-    batting: number
-    runs: number
-    wickets: number
+    currentInnings: number
+    currentBatting: number
     teams: Team[]
+    innings: Innings[]
 }
 
 export const getMatchData = async (id : string) => {
@@ -44,31 +62,78 @@ export const getMatchData = async (id : string) => {
         let overComms = comms[overNumber];
         return over.reverse().map((ball, ballNumber) => {
             let ballComms = overComms.ball[ballNumber];
-            return {
-                runs: ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball,
-                indicator: ball.ball === "&bull;" ? "•" : ball.ball,
-                dismissal: ball.delivery,
+
+            let extraIndicator = ball.extras === "wd" ? "w" : ball.extras;
+            let ballIndicator = ball.ball === "&bull;" ? "•" : `${ball.ball}${extraIndicator}`;
+            let runs = ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball;
+            let runsText = ballComms.event;
+            let events = [];
+            if(runsText === "OUT"){
+                events.push(Event.Wicket);
+            } else if(runsText === "FOUR") {
+                events.push(Event.Four);
+            } else if(runsText === "SIX") {
+                events.push(Event.Six);
+            }
+
+            let dismissalText = ballComms.dismissal.replace("  ", " ");
+            let deliveryText = ballComms.players;
+            let deliveryPlayers = deliveryText.split(" to ");
+            let bowler = deliveryPlayers[0].trim();
+            let batter = deliveryPlayers[1].trim();
+
+            return <Ball>{
+                runs: runs,
+                indicator: ballIndicator,
+                dismissal: dismissalText,
                 extras: ball.extras,
-                event: ballComms.event,
-                players: ballComms.players,
                 deliveryNo: ballComms.overs_actual,
-                uniqueDeliveryNo: ballComms.overs_unique
+                uniqueDeliveryNo: ballComms.overs_unique,
+                deliveryText: deliveryText,
+                runsText,
+                batter,
+                bowler,
+                events
             };
         });
     });
-    let innings = data.innings;
-    let currentInnings = innings[innings.length - 1];
-    let battingTeamId = currentInnings.battingTeamId;
-    let battingTeamNo = data.team[0].contentId === battingTeamId ? 0 : 1;
+
+    let homeId = data.team[0].content_id;
+    let awayId = data.team[1].content_id;
+
+    let homeTeam = <Team>{
+        name: data.team[0].team_name,
+        shortName: data.team[0].team_abbreviation,
+        id: data.team[0].content_id
+
+    };
+    let awayTeam = <Team>{
+        name: data.team[1].team_name,
+        shortName: data.team[1].team_abbreviation,
+        id: data.team[1].content_id
+    };
+
+    let innings = [];
+    for(const inn of data.innings) {
+        let inningsObject = <Innings>{
+            batting: inn.batting_team_id,
+            bowling: inn.bowling_team_id,
+            runs: inn.runs,
+            wickets: inn.wickets,
+            status: inn.event_name
+        };
+        innings.push(inningsObject);
+    }
+
+
+    let currentInnings = data.innings.findIndex((inn : any) => inn.live_current_name === "current innings");
+    let currentBatting = innings[currentInnings].batting === homeTeam.id ? 0 : 1;
     return <Data>{
         balls: deliveries.flat(),
-        runs: currentInnings.runs,
-        wickets: currentInnings.wickets,
-        batting: battingTeamNo,
-        teams: [
-            {name: data.team[0].team_name, shortName: data.team[0].team_abbreviation},
-            {name: data.team[1].team_name, shortName: data.team[1].team_abbreviation}
-        ]
+        currentInnings,
+        currentBatting,
+        teams: [homeTeam, awayTeam],
+        innings
     };
 };
 
