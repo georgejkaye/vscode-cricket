@@ -3,6 +3,7 @@
   "displayName": "Cricket",
   "description": "Extension for following cricket matches",
   "version": "0.0.1",
+  "license": "GPL-3.0-or-later",
   "engines": {
     "vscode": "^1.80.0"
   },
