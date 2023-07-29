@@ -53,7 +53,7 @@ const notifyEvent = (event: Event, ball: Ball, match : Match) => {
 		event === Event.Six ?
 			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings)}` :
 		event === Event.Wicket ?
-			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${getInningsScore(match, currentInnings)}`:
+			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${match.teams[currentInnings.batting].shortName} ${getInningsScore(match, currentInnings)}`:
 		"";
 	if(text !== "") {
 		vscode.window.showInformationMessage(text);
