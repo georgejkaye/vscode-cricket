@@ -1,109 +1,180 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
-import * as vscode from 'vscode';
-import { getDismissalString } from './dismissal';
-import { Match, Status, Team, getStatusText } from './match';
-import { Innings, InningsStatus } from './innings';
-import { Event, Ball } from './ball';
-import { getBattingTeam, getCurrentInnings, getMatch, getSummary } from './tasks';
+import * as vscode from "vscode"
+import { getDismissalString } from "./dismissal"
+import { Match, Status, Team, getStatusText } from "./match"
+import { Innings, InningsStatus } from "./innings"
+import { Ball } from "./ball"
+import {
+    getBattingTeam,
+    getCurrentInnings,
+    getMatch,
+    getSummary,
+} from "./tasks"
+import { EventType, Event, TeamMilestoneEvent } from "./event"
 
-let statusBarItem : vscode.StatusBarItem;
+let statusBarItem: vscode.StatusBarItem
 
-const noBallsShown = 6;
+const noBallsShown = 6
 
+const getInningsScore = (match: Match, inn: Innings, showOvers: boolean) => {
+    if (inn.status === InningsStatus.AllOut) {
+        return `${inn.runs}`
+    }
+    if (inn.status === InningsStatus.Declared) {
+        return `${inn.runs}d`
+    }
+    if (
+        inn.status === InningsStatus.Complete ||
+        inn.status === InningsStatus.Result
+    ) {
+        return `${inn.runs}/${inn.wickets}`
+    }
+    let oversText = showOvers ? ` (${match.balls[0].deliveryNo})` : ""
+    return `${inn.runs}/${inn.wickets}*${oversText}`
+}
 
-const getInningsScore = (match : Match, inn : Innings, showOvers : boolean) => {
-	if(inn.status === InningsStatus.AllOut) {
-		return `${inn.runs}`;
-	}
-	if(inn.status === InningsStatus.Declared) {
-		return `${inn.runs}d`;
-	}
-	if(inn.status === InningsStatus.Complete || inn.status === InningsStatus.Result) {
-		return `${inn.runs}/${inn.wickets}`;
-	}
-	let oversText = showOvers ? ` (${match.balls[0].deliveryNo})` : "";
-	return `${inn.runs}/${inn.wickets}*${oversText}`;
-};
+const getTeamScore = (match: Match, innings: Innings[], team: Team) => {
+    let teamInnings = innings.filter((inn) => inn.batting === team.id)
+    return teamInnings
+        .map((inn) => getInningsScore(match, inn, true))
+        .join(" & ")
+}
 
-const getTeamScore = (match : Match, innings: Innings[], team : Team) => {
-	let teamInnings = innings.filter((inn) => inn.batting === team.id);
-	return teamInnings.map((inn) => getInningsScore(match, inn, true)).join(" & ");
-};
+const updateStatusBarItem = (matches: Match[]) => {
+    for (const match of matches) {
+        const getTeamName = (team: Team) => team.shortName
+        const getTeamSummary = (team: Team) =>
+            `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`
+        let summaryText = `${getTeamSummary(
+            match.teams[0]
+        )} vs ${getTeamSummary(match.teams[1])}`
 
-const updateStatusBarItem = (matches : Match[]) => {
-	for(const match of matches) {
-		const getTeamName = (team : Team) => team.shortName;
-		const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`;
-		let summaryText = `${getTeamSummary(match.teams[0])} vs ${getTeamSummary(match.teams[1])}`;
+        let statusText = getStatusText(match.status)
+        let resultText =
+            statusText === "Result" ? ` (${match.statusString})` : ""
 
-		let statusText = getStatusText(match.status);
-		let resultText = statusText === "Result" ? ` (${match.statusString})` : "";
+        let shownBalls = match.balls.slice(0, noBallsShown)
+        let shownBallsText =
+            match.status === Status.Live
+                ? ` | ${shownBalls.map((ball) => ball.indicator).join(" | ")} |`
+                : ""
 
-		let shownBalls = match.balls.slice(0, noBallsShown);
-		let shownBallsText =
-			match.status === Status.Live ?
-				` | ${shownBalls.map((ball) => ball.indicator).join(" | ")} |` : "";
+        statusBarItem.text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`
+    }
+}
 
-		statusBarItem.text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`;
-	}
-};
+const notifyEvent = (event: Event, match: Match) => {
+    let battingTeam = match.teams[match.currentBatting]
+    let currentInnings = match.innings[match.currentInnings]
+    let eventType = event.type
+    var text = ""
+    switch (event.type) {
+        case EventType.Four:
+            text = `FOUR! (${event.batter}) ${
+                battingTeam.shortName
+            } ${getInningsScore(match, currentInnings, false)}`
+            break
+        case EventType.Six:
+            text = `SIX! (${event.batter}) ${
+                battingTeam.shortName
+            } ${getInningsScore(match, currentInnings, false)}`
+            break
+        case EventType.Wicket:
+            text = `OUT! ${getDismissalString(event.dismissal)} ${
+                match.teams[currentInnings.batting].shortName
+            } ${getInningsScore(match, currentInnings, false)}`
+        default:
+            text = ""
+    }
+    if (text !== "") {
+        vscode.window.showInformationMessage(text)
+    }
+}
 
-const notifyEvent = (event: Event, ball: Ball, match : Match) => {
-	let battingTeam = match.teams[match.currentBatting];
-	let currentInnings = match.innings[match.currentInnings];
-	let text =
-		event === Event.Four ?
-			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings, false)}` :
-		event === Event.Six ?
-			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings, false)}` :
-		event === Event.Wicket ?
-			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${match.teams[currentInnings.batting].shortName} ${getInningsScore(match, currentInnings, false)}`:
-		"";
-	if(text !== "") {
-		vscode.window.showInformationMessage(text);
-	}
-};
+const followedMatchesKey = "followedMatches"
+const lastDeliveryKey = "lastDelivery"
+const previousMatchesKey = "previousMatches"
 
-const followedMatchesKey = "followedMatches";
-const lastDeliveryKey = "lastDelivery";
-const previousMatchesKey = "previousMatches";
+const handleDelivery = (ball: Ball, match: Match) => {
+    let currentInnings = getCurrentInnings(match)
+    let currentScore = getInningsScore(match, currentInnings, false)
+    vscode.window.showInformationMessage(
+        `(${ball.deliveryNo}) ${ball.deliveryText} (${ball.runsText}). ${
+            getBattingTeam(match).shortName
+        } are ${currentScore}.`
+    )
+    ball.events.forEach((event) => notifyEvent(event, match))
+}
 
-const handleDelivery = (ball : Ball, match : Match) => {
-	let currentInnings = getCurrentInnings(match);
-	let currentScore = getInningsScore(match, currentInnings, false);
-	vscode.window.showInformationMessage(`(${ball.deliveryNo}) ${ball.deliveryText} (${ball.runsText}). ${getBattingTeam(match).shortName} are ${currentScore}.`);
-	ball.events.forEach((event) => notifyEvent(event, ball, match));
-};
+const generateMultiples = (
+    highValue: number,
+    lowValue: number,
+    multiplier: number
+) => {
+    let highestCoefficient = Math.floor(highValue / multiplier)
+    let lowestCoefficient = Math.floor(lowValue / multiplier)
+    return Array.from(
+        { length: highestCoefficient - lowestCoefficient },
+        (_, i) => (i + lowestCoefficient) * multiplier
+    )
+}
 
-const updateMatches = async (context : vscode.ExtensionContext) => {
-	let currentMatchString : string | undefined = context.globalState.get(followedMatchesKey);
-		if(currentMatchString) {
-			let currentMatches = currentMatchString.split(",");
-			let matches : Match[] = [];
-			let previousMatchesString : string | undefined = context.globalState.get(previousMatchesKey);
-			let previousMatches : { [key: string] : Match } =
-				previousMatchesString ? JSON.parse(previousMatchesString) : [];
-			for(const currentMatch of currentMatches) {
-				let previousMatch = previousMatches[currentMatch];
-				let match = await getMatch(currentMatch);
-				matches.push(match);
-				if(match.balls.length > 0) {
-					if(previousMatch) {
-						let unseenBalls = match.balls.filter((ball) =>
-							parseFloat(ball.uniqueDeliveryNo) > parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
-						);
-						unseenBalls.forEach((ball) => handleDelivery(ball, match));
-					}
-					let lastBall = match.balls[0];
-					context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
-				}
-			}
-			updateStatusBarItem(matches);
-			let matchesString = JSON.stringify(matches);
-			context.globalState.update(previousMatchesKey, matchesString);
-		}
-};
+const computeEvents = (match: Match, previousMatch: Match) => {
+    let events: Event[] = []
+    let currentInnings = getCurrentInnings(match)
+    let previousInnings = getCurrentInnings(previousMatch)
+    // Team milestones
+    let runMultiples = generateMultiples(
+        currentInnings.runs,
+        previousInnings.runs,
+        50
+    )
+    let runMilestones: TeamMilestoneEvent[] = runMultiples.map((multiple) => ({
+        type: EventType.TeamMilestone,
+        team: getBattingTeam(match),
+        milestone: multiple,
+    }))
+    events.concat(runMilestones)
+    return events
+}
+
+const updateMatches = async (context: vscode.ExtensionContext) => {
+    let currentMatchString: string | undefined =
+        context.globalState.get(followedMatchesKey)
+    if (currentMatchString) {
+        let currentMatches = currentMatchString.split(",")
+        let matches: Match[] = []
+        let previousMatchesString: string | undefined =
+            context.globalState.get(previousMatchesKey)
+        let previousMatches: { [key: string]: Match } = previousMatchesString
+            ? JSON.parse(previousMatchesString)
+            : []
+        for (const currentMatch of currentMatches) {
+            let previousMatch = previousMatches[currentMatch]
+            let match = await getMatch(currentMatch)
+            matches.push(match)
+            if (match.balls.length > 0) {
+                if (previousMatch) {
+                    let unseenBalls = match.balls.filter(
+                        (ball) =>
+                            parseFloat(ball.uniqueDeliveryNo) >
+                            parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
+                    )
+                    unseenBalls.forEach((ball) => handleDelivery(ball, match))
+                }
+                let lastBall = match.balls[0]
+                context.globalState.update(
+                    lastDeliveryKey,
+                    lastBall.uniqueDeliveryNo
+                )
+            }
+        }
+        updateStatusBarItem(matches)
+        let matchesString = JSON.stringify(matches)
+        context.globalState.update(previousMatchesKey, matchesString)
+    }
+}
 
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed

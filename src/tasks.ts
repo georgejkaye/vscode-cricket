@@ -36,26 +36,27 @@ export const getMatch = async (id : string) => {
             let runs = ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball;
             let runsText = ballComms.event;
             let events = [];
-            if(runsText === "OUT"){
-                events.push(Event.Wicket);
-            } else if(runsText === "FOUR") {
-                events.push(Event.Four);
-            } else if(runsText === "SIX") {
-                events.push(Event.Six);
+            let runsText = ballComms.event
+            let events = []
+            let deliveryText = ballComms.players
+            let deliveryPlayers = deliveryText.split(" to ")
+            let bowler: string = deliveryPlayers[0].trim()
+            let batter: string = deliveryPlayers[1].trim()
+            if (runsText === "OUT") {
+                let dismissal = parseDismissal(
+                    ballComms.dismissal.replace("  ", " ")
+                )
+                if (dismissal) {
+                    events.push({ type: EventType.Wicket, dismissal })
+                }
+            } else if (runsText === "FOUR") {
+                events.push({ type: EventType.Four, batter })
+            } else if (runsText === "SIX") {
+                events.push({ type: EventType.Six, batter })
             }
-            let dismissal =
-                ballComms.dismissal
-                    ? parseDismissal(ballComms.dismissal.replace("  ", " "))
-                    : undefined;
-            let deliveryText = ballComms.players;
-            let deliveryPlayers = deliveryText.split(" to ");
-            let bowler = deliveryPlayers[0].trim();
-            let batter = deliveryPlayers[1].trim();
-
             return <Ball>{
                 runs: runs,
                 indicator: ballIndicator,
-                dismissal: dismissal,
                 extras: ball.extras,
                 deliveryNo: ballComms.overs_actual,
                 uniqueDeliveryNo: ballComms.overs_unique,
