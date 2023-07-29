@@ -4,7 +4,7 @@ import { Dismissal, parseDismissal } from "./dismissal";
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
-interface Match {
+interface MatchName {
     label: string
     id: string
 }
@@ -43,7 +43,7 @@ export interface Team {
     shortName: string
 }
 
-export interface Data {
+export interface Match {
     balls: Ball[]
     currentInnings: number
     currentBatting: number
@@ -51,12 +51,12 @@ export interface Data {
     innings: Innings[]
 }
 
-export const getMatchData = async (id : string) => {
+export const getMatch = async (id : string) => {
     let url = `https://www.espncricinfo.com/matches/engine/match/${id}.json`;
     let response = await axios.get(url);
     let data = response.data;
 
-    let comms : any[] = data.comms
+    let comms : any[] = data.comms;
     let recentOvers : any[] = data.live.recent_overs;
 
     let deliveries = recentOvers.reverse().map((over : any[], overNumber) => {
@@ -130,7 +130,7 @@ export const getMatchData = async (id : string) => {
 
     let currentInnings = data.innings.findIndex((inn : any) => inn.live_current_name === "current innings");
     let currentBatting = innings[currentInnings].batting === homeTeam.id ? 0 : 1;
-    return <Data>{
+    return <Match>{
         balls: deliveries.flat(),
         currentInnings,
         currentBatting,
@@ -145,7 +145,7 @@ export const getSummary = async () => {
     let data = response.data;
     let xml : any = xml2js(data, { compact: true });
     let matchElements = xml.rss.channel.item;
-    let matches : Match[] = matchElements.map((match : any) => {
+    let matches : MatchName[] = matchElements.map((match : any) => {
         let matchTitle = match.title._text.replace("  ", " ");
         let link = match.link._text;
         let linkElements = link.split("/");

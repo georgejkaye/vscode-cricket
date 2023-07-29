@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { getMatchData, getSummary, Data, Ball, Event, Team, Innings } from './tasks';
+import { getMatch, getSummary, Match, Ball, Event, Team, Innings } from './tasks';
 import { getDismissalString } from './dismissal';
 
 let statusBarItem : vscode.StatusBarItem;
@@ -9,7 +9,7 @@ let statusBarItem : vscode.StatusBarItem;
 const noBallsShown = 6;
 
 
-const getInningsScore = (data : Data, inn : Innings) => {
+const getInningsScore = (match : Match, inn : Innings) => {
 	if(inn.status === "all out") {
 		return `${inn.runs}`;
 	}
@@ -19,35 +19,35 @@ const getInningsScore = (data : Data, inn : Innings) => {
 	if(inn.status === "complete") {
 		return `${inn.runs}/${inn.wickets}`;
 	}
-	return `${inn.runs}/${inn.wickets}* (${data.balls[0].deliveryNo})`;
+	return `${inn.runs}/${inn.wickets}* (${match.balls[0].deliveryNo})`;
 };
 
-const getTeamScore = (data : Data, innings: Innings[], team : Team) => {
+const getTeamScore = (match : Match, innings: Innings[], team : Team) => {
 	let teamInnings = innings.filter((inn) => inn.batting === team.id);
-	return teamInnings.map((inn) => getInningsScore(data, inn)).join(" & ");
+	return teamInnings.map((inn) => getInningsScore(match, inn)).join(" & ");
 };
 
-const updateStatusBarItem = (data : Data) => {
+const updateStatusBarItem = (match : Match) => {
 	const getTeamName = (team : Team) => team.shortName;
-	const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(data, data.innings, team)}`;
-	let summaryText = `${getTeamSummary(data.teams[0])} vs ${getTeamSummary(data.teams[1])}`;
+	const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`;
+	let summaryText = `${getTeamSummary(match.teams[0])} vs ${getTeamSummary(match.teams[1])}`;
 
-	let shownBalls = data.balls.slice(0, noBallsShown);
+	let shownBalls = match.balls.slice(0, noBallsShown);
 	let shownBallsText = shownBalls.map((ball) => ball.indicator).join(" | ");
 
 	statusBarItem.text = `${summaryText} | ${shownBallsText} |`;
 };
 
-const notifyEvent = (event: Event, ball: Ball, data : Data) => {
-	let battingTeam = data.teams[data.currentBatting];
-	let currentInnings = data.innings[data.currentInnings];
+const notifyEvent = (event: Event, ball: Ball, match : Match) => {
+	let battingTeam = match.teams[match.currentBatting];
+	let currentInnings = match.innings[match.currentInnings];
 	let text =
 		event === Event.Four ?
-			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings)}` :
 		event === Event.Six ?
-			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings)}` :
 		event === Event.Wicket ?
-			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${getInningsScore(data, currentInnings)}`:
+			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${getInningsScore(match, currentInnings)}`:
 		"";
 	if(text !== "") {
 		vscode.window.showInformationMessage(text);
@@ -75,8 +75,8 @@ export function activate(context: vscode.ExtensionContext) {
 		let option = await vscode.window.showQuickPick(matches);
 		if(option) {
 			context.globalState.update(currentMatchKey, option.id);
-			let data = await getMatchData(option.id);
-			updateStatusBarItem(data);
+			let match = await getMatch(option.id);
+			updateStatusBarItem(match);
 			statusBarItem.show();
 		}
 	});
@@ -98,15 +98,14 @@ export function activate(context: vscode.ExtensionContext) {
 	setInterval(async () => {
 		let currentMatch : string | undefined = context.globalState.get(currentMatchKey);
 		if(currentMatch) {
-			let data = await getMatchData(currentMatch);
-			console.log(data)
-			let lastBall = data.balls[0];
+			let match = await getMatch(currentMatch);
+			let lastBall = match.balls[0];
 			let lastDelivery = context.globalState.get(lastDeliveryKey);
 			if(!lastDelivery || lastDelivery !== lastBall.uniqueDeliveryNo){
 				context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
-				// vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.deliveryText} (${lastBall.runsText}). ${data.teams[data.batting].shortName} are ${data.runs}/${data.wickets}.`);
-				lastBall.events.forEach((event) => notifyEvent(event, lastBall, data));
-				updateStatusBarItem(data);
+				// vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.deliveryText} (${lastBall.runsText}). ${match.teams[match.batting].shortName} are ${match.runs}/${match.wickets}.`);
+				lastBall.events.forEach((event) => notifyEvent(event, lastBall, match));
+				updateStatusBarItem(match);
 			}
 		}
 	}, updateSeconds * 1000);
