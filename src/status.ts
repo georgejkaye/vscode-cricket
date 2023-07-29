@@ -17,7 +17,7 @@ export const getStatus = (data : any) => (
     data.match.live_state === "Stumps" ? Status.Stumps :
     data.match.result_short_name === "aban" ? Status.Abandoned :
     data.match.result === "0" ? Status.Live : Status.Other
-)
+);
 
 export const getStatusText = (status : Status) => (
     status === Status.Upcoming ? "Upcoming" :
@@ -27,5 +27,6 @@ export const getStatusText = (status : Status) => (
     status === Status.Stumps ? "Stumps" :
     status === Status.Result ? "Result" :
     status === Status.Delayed ? "Delayed" :
-    status === Status.Break ? "Break" : ""
-)
+    status === Status.Break ? "Break" :
+    status === Status.Abandoned ? "Abandoned" : ""
+);
