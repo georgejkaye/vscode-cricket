@@ -10,7 +10,7 @@ let statusBarItem : vscode.StatusBarItem;
 const noBallsShown = 6;
 
 
-const getInningsScore = (match : Match, inn : Innings) => {
+const getInningsScore = (match : Match, inn : Innings, showOvers : boolean) => {
 	if(inn.status === InningsStatus.AllOut) {
 		return `${inn.runs}`;
 	}
@@ -20,12 +20,13 @@ const getInningsScore = (match : Match, inn : Innings) => {
 	if(inn.status === InningsStatus.Complete || inn.status === InningsStatus.Result) {
 		return `${inn.runs}/${inn.wickets}`;
 	}
-	return `${inn.runs}/${inn.wickets}* (${match.balls[0].deliveryNo})`;
+	let oversText = showOvers ? ` (${match.balls[0].deliveryNo})` : "";
+	return `${inn.runs}/${inn.wickets}*${oversText}`;
 };
 
 const getTeamScore = (match : Match, innings: Innings[], team : Team) => {
 	let teamInnings = innings.filter((inn) => inn.batting === team.id);
-	return teamInnings.map((inn) => getInningsScore(match, inn)).join(" & ");
+	return teamInnings.map((inn) => getInningsScore(match, inn, true)).join(" & ");
 };
 
 const updateStatusBarItem = (matches : Match[]) => {
@@ -51,11 +52,11 @@ const notifyEvent = (event: Event, ball: Ball, match : Match) => {
 	let currentInnings = match.innings[match.currentInnings];
 	let text =
 		event === Event.Four ?
-			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings)}` :
+			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings, false)}` :
 		event === Event.Six ?
-			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings)}` :
+			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(match, currentInnings, false)}` :
 		event === Event.Wicket ?
-			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${match.teams[currentInnings.batting].shortName} ${getInningsScore(match, currentInnings)}`:
+			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${match.teams[currentInnings.batting].shortName} ${getInningsScore(match, currentInnings, false)}`:
 		"";
 	if(text !== "") {
 		vscode.window.showInformationMessage(text);
