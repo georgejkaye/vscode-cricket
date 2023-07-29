@@ -4,16 +4,10 @@ import * as vscode from 'vscode';
 import { getMatchData, getSummary, Data, Ball, Event, Team, Innings } from './tasks';
 import { getDismissalString } from './dismissal';
 
-let recentBallsStatusBarItem : vscode.StatusBarItem;
-let gameSummaryStatusBarItem : vscode.StatusBarItem;
+let statusBarItem : vscode.StatusBarItem;
 
 const noBallsShown = 6;
 
-const updateRecentBallsStatusBar = (data : Data) => {
-	let shownBalls = data.balls.slice(0, noBallsShown);
-	let shownBallsText = shownBalls.map((ball) => ball.indicator).join(" | ");
-	recentBallsStatusBarItem.text = shownBallsText;
-};
 
 const getInningsScore = (data : Data, inn : Innings) => {
 	if(inn.status === "all out") {
@@ -33,20 +27,27 @@ const getTeamScore = (data : Data, innings: Innings[], team : Team) => {
 	return teamInnings.map((inn) => getInningsScore(data, inn)).join(" & ");
 };
 
-const updateGameSummaryStatusBar = (data : Data) => {
+const updateStatusBarItem = (data : Data) => {
 	const getTeamName = (team : Team) => team.shortName;
 	const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(data, data.innings, team)}`;
 	let summaryText = `${getTeamSummary(data.teams[0])} vs ${getTeamSummary(data.teams[1])}`;
-	gameSummaryStatusBarItem.text = summaryText;
+
+	let shownBalls = data.balls.slice(0, noBallsShown);
+	let shownBallsText = shownBalls.map((ball) => ball.indicator).join(" | ");
+
+	statusBarItem.text = `${summaryText} | ${shownBallsText} |`;
 };
 
 const notifyEvent = (event: Event, ball: Ball, data : Data) => {
 	let battingTeam = data.teams[data.currentBatting];
 	let currentInnings = data.innings[data.currentInnings];
 	let text =
-		event === Event.Four ? `FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
-		event === Event.Six ? `SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
-		event === Event.Wicket ? `OUT! ${getDismissalString(ball.dismissal)} ${getInningsScore(data, currentInnings)}`:
+		event === Event.Four ?
+			`FOUR! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+		event === Event.Six ?
+			`SIX! (${ball.batter}) ${battingTeam.shortName} ${getInningsScore(data, currentInnings)}` :
+		event === Event.Wicket ?
+			`OUT! ${ball.dismissal ? getDismissalString(ball.dismissal) : ""} ${getInningsScore(data, currentInnings)}`:
 		"";
 	if(text !== "") {
 		vscode.window.showInformationMessage(text);
@@ -75,27 +76,19 @@ export function activate(context: vscode.ExtensionContext) {
 		if(option) {
 			context.globalState.update(currentMatchKey, option.id);
 			let data = await getMatchData(option.id);
-			updateGameSummaryStatusBar(data);
-			updateRecentBallsStatusBar(data);
-			recentBallsStatusBarItem.show();
-			gameSummaryStatusBarItem.show();
+			updateStatusBarItem(data);
+			statusBarItem.show();
 		}
 	});
 
 	let stopFollowMatch = vscode.commands.registerCommand('vscode-cricket.stopFollowMatch', async () => {
 		context.globalState.update(currentMatchKey, undefined);
-		recentBallsStatusBarItem.hide();
-		gameSummaryStatusBarItem.hide();
+		statusBarItem.hide();
 	});
-
-	gameSummaryStatusBarItem = vscode.window.createStatusBarItem(
-		vscode.StatusBarAlignment.Right, 200
-	);
-	recentBallsStatusBarItem = vscode.window.createStatusBarItem(
+	statusBarItem = vscode.window.createStatusBarItem(
 		vscode.StatusBarAlignment.Right, 100
 	);
-	context.subscriptions.push(gameSummaryStatusBarItem);
-	context.subscriptions.push(recentBallsStatusBarItem);
+	context.subscriptions.push(statusBarItem);
 
 	context.subscriptions.push(followMatch);
 	context.subscriptions.push(stopFollowMatch);
@@ -113,8 +106,7 @@ export function activate(context: vscode.ExtensionContext) {
 				context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
 				// vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.deliveryText} (${lastBall.runsText}). ${data.teams[data.batting].shortName} are ${data.runs}/${data.wickets}.`);
 				lastBall.events.forEach((event) => notifyEvent(event, lastBall, data));
-				updateGameSummaryStatusBar(data);
-				updateRecentBallsStatusBar(data);
+				updateStatusBarItem(data);
 			}
 		}
 	}, updateSeconds * 1000);
