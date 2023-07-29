@@ -67,26 +67,41 @@ const notifyEvent = (event: Event, ball: Ball, match : Match) => {
 
 const followedMatchesKey = "followedMatches";
 const lastDeliveryKey = "lastDelivery";
+const previousMatchesKey = "previousMatches";
+
+const handleDelivery = (ball : Ball, match : Match) => {
+	let currentInnings = getCurrentInnings(match);
+	let currentScore = getInningsScore(match, currentInnings, false);
+	vscode.window.showInformationMessage(`(${ball.deliveryNo}) ${ball.deliveryText} (${ball.runsText}). ${getBattingTeam(match).shortName} are ${currentScore}.`);
+	ball.events.forEach((event) => notifyEvent(event, ball, match));
+};
 
 const updateMatches = async (context : vscode.ExtensionContext) => {
 	let currentMatchString : string | undefined = context.globalState.get(followedMatchesKey);
 		if(currentMatchString) {
 			let currentMatches = currentMatchString.split(",");
 			let matches : Match[] = [];
+			let previousMatchesString : string | undefined = context.globalState.get(previousMatchesKey);
+			let previousMatches : { [key: string] : Match } =
+				previousMatchesString ? JSON.parse(previousMatchesString) : [];
 			for(const currentMatch of currentMatches) {
+				let previousMatch = previousMatches[currentMatch];
 				let match = await getMatch(currentMatch);
 				matches.push(match);
 				if(match.balls.length > 0) {
-					let lastBall = match.balls[0];
-					let lastDelivery = context.globalState.get(lastDeliveryKey);
-					if(!lastDelivery || lastDelivery !== lastBall.uniqueDeliveryNo){
-						context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
-						// vscode.window.showInformationMessage(`(${lastBall.deliveryNo}) ${lastBall.deliveryText} (${lastBall.runsText}). ${match.teams[match.batting].shortName} are ${match.runs}/${match.wickets}.`);
-						lastBall.events.forEach((event) => notifyEvent(event, lastBall, match));
+					if(previousMatch) {
+						let unseenBalls = match.balls.filter((ball) =>
+							parseFloat(ball.uniqueDeliveryNo) > parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
+						);
+						unseenBalls.forEach((ball) => handleDelivery(ball, match));
 					}
+					let lastBall = match.balls[0];
+					context.globalState.update(lastDeliveryKey, lastBall.uniqueDeliveryNo);
 				}
 			}
 			updateStatusBarItem(matches);
+			let matchesString = JSON.stringify(matches);
+			context.globalState.update(previousMatchesKey, matchesString);
 		}
 };
 
@@ -98,8 +113,9 @@ export function activate(context: vscode.ExtensionContext) {
 	// This line of code will only be executed once when your extension is activated
 	console.log('Congratulations, your extension "vscode-cricket" is now active!');
 
-	context.globalState.setKeysForSync([followedMatchesKey]);
-	context.globalState.setKeysForSync([lastDeliveryKey]);
+	context.globalState.setKeysForSync(
+		[followedMatchesKey, lastDeliveryKey, previousMatchesKey]
+	);
 
 	// The command has been defined in the package.json file
 	// Now provide the implementation of the command with registerCommand
