@@ -1,6 +1,7 @@
 import axios from "axios";
 import { xml2js } from "xml-js";
 import { Dismissal, parseDismissal } from "./dismissal";
+import { Status, getStatus } from "./status";
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
@@ -47,6 +48,7 @@ export interface Match {
     balls: Ball[]
     currentInnings: number
     currentBatting: number
+    status: Status
     teams: Team[]
     innings: Innings[]
 }
@@ -60,9 +62,10 @@ export const getMatch = async (id : string) => {
     let recentOvers : any[] = data.live.recent_overs;
 
     let deliveries = recentOvers.reverse().map((over : any[], overNumber) => {
-        let overComms = comms[overNumber].filter((comm : any) => comm.ball);
+        let allOverComms = comms[overNumber].ball;
+        let overComms = allOverComms.filter((comm : any) => comm.event);
         return over.reverse().map((ball, ballNumber) => {
-            let ballComms = overComms.ball[ballNumber];
+            let ballComms = overComms[ballNumber];
             let extraIndicator = ball.extras === "wd" ? "w" : ball.extras;
             let ballIndicator = ball.ball === "&bull;" ? "•" : `${ball.ball}${extraIndicator}`;
             let runs = ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball;
@@ -99,10 +102,6 @@ export const getMatch = async (id : string) => {
             };
         });
     });
-
-    let homeId = data.team[0].content_id;
-    let awayId = data.team[1].content_id;
-
     let homeTeam = <Team>{
         name: data.team[0].team_name,
         shortName: data.team[0].team_abbreviation,
@@ -114,7 +113,6 @@ export const getMatch = async (id : string) => {
         shortName: data.team[1].team_abbreviation,
         id: data.team[1].content_id
     };
-
     let innings = [];
     for(const inn of data.innings) {
         let inningsObject = <Innings>{
@@ -126,16 +124,16 @@ export const getMatch = async (id : string) => {
         };
         innings.push(inningsObject);
     }
-
-
     let currentInnings = data.innings.findIndex((inn : any) => inn.live_current_name === "current innings");
     let currentBatting = innings[currentInnings].batting === homeTeam.id ? 0 : 1;
+    let status = getStatus(data);
     return <Match>{
         balls: deliveries.flat(),
         currentInnings,
         currentBatting,
         teams: [homeTeam, awayTeam],
-        innings
+        innings,
+        status
     };
 };
 
