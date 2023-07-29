@@ -30,12 +30,29 @@ export interface Ball {
     events: Event[]
 }
 
+export enum InningsStatus {
+    Ongoing,
+    AllOut,
+    Declared,
+    Complete,
+    Result
+}
+
+const getInningsStatus = (innings : any, matchStatus: Status) => (
+    innings.event_name === "all out" ? InningsStatus.AllOut :
+    innings.event_name === "declared" ? InningsStatus.Declared :
+    innings.event_name === "complete" ? InningsStatus.Complete :
+    innings.live_current === 0 ? InningsStatus.Complete :
+    innings.live_current === 1 && matchStatus === Status.Result ? InningsStatus.Complete :
+    InningsStatus.Ongoing
+)
+
 export interface Innings {
     batting: number
     bowling: number
     runs: number
     wickets: number
-    status: string
+    status: InningsStatus
 }
 
 export interface Team {
@@ -114,21 +131,23 @@ export const getMatch = async (id : string) => {
         shortName: data.team[1].team_abbreviation,
         id: data.team[1].content_id
     };
+    let status = getStatus(data);
+    let statusString = data.live.status;
     let innings = [];
     for(const inn of data.innings) {
+        let inningsStatus = getInningsStatus(inn, status);
         let inningsObject = <Innings>{
             batting: inn.batting_team_id,
             bowling: inn.bowling_team_id,
             runs: inn.runs,
             wickets: inn.wickets,
-            status: inn.event_name
+            status: inningsStatus
         };
         innings.push(inningsObject);
     }
     let currentInnings = data.innings.findIndex((inn : any) => inn.live_current_name === "current innings");
-    let currentBatting = innings[currentInnings].batting === homeTeam.id ? 0 : 1;
-    let status = getStatus(data);
-    let statusString = data.live.status;
+    let currentBatting =
+        currentInnings === -1 ? -1 : innings[currentInnings].batting === homeTeam.id ? 0 : 1;
     return <Match>{
         balls: deliveries.flat(),
         currentInnings,

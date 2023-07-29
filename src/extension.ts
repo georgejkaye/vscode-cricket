@@ -1,7 +1,7 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { getMatch, getSummary, Match, Ball, Event, Team, Innings } from './tasks';
+import { getMatch, getSummary, Match, Ball, Event, Team, Innings, InningsStatus } from './tasks';
 import { getDismissalString } from './dismissal';
 import { Status, getStatusText } from './status';
 
@@ -11,13 +11,13 @@ const noBallsShown = 6;
 
 
 const getInningsScore = (match : Match, inn : Innings) => {
-	if(inn.status === "all out") {
+	if(inn.status === InningsStatus.AllOut) {
 		return `${inn.runs}`;
 	}
-	if(inn.status === "declared") {
+	if(inn.status === InningsStatus.Declared) {
 		return `${inn.runs}d`;
 	}
-	if(inn.status === "complete") {
+	if(inn.status === InningsStatus.Complete || inn.status === InningsStatus.Result) {
 		return `${inn.runs}/${inn.wickets}`;
 	}
 	return `${inn.runs}/${inn.wickets}* (${match.balls[0].deliveryNo})`;
