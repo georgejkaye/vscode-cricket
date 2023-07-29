@@ -18,7 +18,7 @@ export enum Event {
 export interface Ball {
     runs : number
     indicator: string
-    dismissal: Dismissal
+    dismissal: Dismissal | undefined
     extras: string
     deliveryNo: string
     uniqueDeliveryNo: string
@@ -56,14 +56,13 @@ export const getMatchData = async (id : string) => {
     let response = await axios.get(url);
     let data = response.data;
 
-    let comms : any[] = data.comms;
+    let comms : any[] = data.comms
     let recentOvers : any[] = data.live.recent_overs;
 
     let deliveries = recentOvers.reverse().map((over : any[], overNumber) => {
-        let overComms = comms[overNumber];
+        let overComms = comms[overNumber].filter((comm : any) => comm.ball);
         return over.reverse().map((ball, ballNumber) => {
             let ballComms = overComms.ball[ballNumber];
-
             let extraIndicator = ball.extras === "wd" ? "w" : ball.extras;
             let ballIndicator = ball.ball === "&bull;" ? "•" : `${ball.ball}${extraIndicator}`;
             let runs = ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball;
@@ -76,8 +75,10 @@ export const getMatchData = async (id : string) => {
             } else if(runsText === "SIX") {
                 events.push(Event.Six);
             }
-
-            let dismissal = parseDismissal(ballComms.dismissal.replace("  ", " "));
+            let dismissal =
+                ballComms.dismissal
+                    ? parseDismissal(ballComms.dismissal.replace("  ", " "))
+                    : undefined;
             let deliveryText = ballComms.players;
             let deliveryPlayers = deliveryText.split(" to ");
             let bowler = deliveryPlayers[0].trim();
