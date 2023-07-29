@@ -1,9 +1,11 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { getMatch, getSummary, Match, Ball, Event, Team, Innings, InningsStatus } from './tasks';
 import { getDismissalString } from './dismissal';
-import { Status, getStatusText } from './status';
+import { Match, Status, Team, getStatusText } from './match';
+import { Innings, InningsStatus } from './innings';
+import { Event, Ball } from './ball';
+import { getBattingTeam, getCurrentInnings, getMatch, getSummary } from './tasks';
 
 let statusBarItem : vscode.StatusBarItem;
 

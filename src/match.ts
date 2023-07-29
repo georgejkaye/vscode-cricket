@@ -1,3 +1,12 @@
+import { Ball } from "./ball";
+import { Innings } from "./innings";
+
+export interface Team {
+    id: number
+    name: string
+    shortName: string
+}
+
 export enum Status {
     Upcoming,
     Live,
@@ -30,3 +39,13 @@ export const getStatusText = (status : Status) => (
     status === Status.Break ? "Break" :
     status === Status.Abandoned ? "Abandoned" : ""
 );
+
+export interface Match {
+    balls: Ball[]
+    currentInnings: number
+    currentBatting: number
+    status: Status
+    statusString : string
+    teams: Team[]
+    innings: Innings[]
+}

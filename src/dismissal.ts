@@ -80,7 +80,7 @@ export const getDismissalString = (dis : Dismissal) => {
         dismissal.type === "hw" ? `hit wicket b ${dismissal.bowler}` :
         dismissal.type === "ret" ? `retired` : "";
     return `${dis.batter} ${dismissalText}`;
-}
+};
 
 export const parseDismissal = (dis : string) => {
     let bowled = dis.match(bowledRegex);
@@ -114,4 +114,4 @@ export const parseDismissal = (dis : string) => {
         };
     }
     return undefined;
-}
+};

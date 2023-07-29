@@ -1,7 +1,9 @@
 import axios from "axios";
 import { xml2js } from "xml-js";
 import { Dismissal, parseDismissal } from "./dismissal";
-import { Status, getStatus } from "./status";
+import { Match, Status, Team, getStatus } from "./match";
+import { Innings, getInningsStatus } from "./innings";
+import { Ball, Event } from "./ball";
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml";
 
@@ -10,66 +12,11 @@ interface MatchName {
     id: string
 }
 
-export enum Event {
-    Four,
-    Six,
-    Wicket
-}
+export const getBattingTeam = (match : Match) =>
+    match.teams[match.currentBatting];
 
-export interface Ball {
-    runs : number
-    indicator: string
-    dismissal: Dismissal | undefined
-    extras: string
-    deliveryNo: string
-    uniqueDeliveryNo: string
-    deliveryText: string
-    runsText: string
-    batter: string
-    bowler: string
-    events: Event[]
-}
-
-export enum InningsStatus {
-    Ongoing,
-    AllOut,
-    Declared,
-    Complete,
-    Result
-}
-
-const getInningsStatus = (innings : any, matchStatus: Status) => (
-    innings.event_name === "all out" ? InningsStatus.AllOut :
-    innings.event_name === "declared" ? InningsStatus.Declared :
-    innings.event_name === "complete" ? InningsStatus.Complete :
-    innings.live_current === 0 ? InningsStatus.Complete :
-    innings.live_current === 1 && matchStatus === Status.Result ? InningsStatus.Complete :
-    InningsStatus.Ongoing
-)
-
-export interface Innings {
-    batting: number
-    bowling: number
-    runs: number
-    wickets: number
-    status: InningsStatus
-}
-
-export interface Team {
-    id: number
-    name: string
-    shortName: string
-}
-
-export interface Match {
-    balls: Ball[]
-    currentInnings: number
-    currentBatting: number
-    status: Status
-    statusString : string
-    teams: Team[]
-    innings: Innings[]
-}
+export const getCurrentInnings = (match : Match) =>
+    match.innings[match.currentInnings];
 
 export const getMatch = async (id : string) => {
     let url = `https://www.espncricinfo.com/matches/engine/match/${id}.json`;
