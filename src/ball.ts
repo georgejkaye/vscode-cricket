@@ -1,13 +1,9 @@
-import { Dismissal } from "./dismissal";
-
-export enum Event {
-    Four,
-    Six,
-    Wicket
-}
+import { Dismissal } from "./dismissal"
+import { Status } from "./match"
+import { Event } from "./event"
 
 export interface Ball {
-    runs : number
+    runs: number
     indicator: string
     dismissal: Dismissal | undefined
     extras: string

@@ -179,45 +179,55 @@ const updateMatches = async (context: vscode.ExtensionContext) => {
 // This method is called when your extension is activated
 // Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    // Use the console to output diagnostic information (console.log) and errors (console.error)
+    // This line of code will only be executed once when your extension is activated
+    console.log(
+        'Congratulations, your extension "vscode-cricket" is now active!'
+    )
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "vscode-cricket" is now active!');
+    context.globalState.setKeysForSync([
+        followedMatchesKey,
+        lastDeliveryKey,
+        previousMatchesKey,
+    ])
 
-	context.globalState.setKeysForSync(
-		[followedMatchesKey, lastDeliveryKey, previousMatchesKey]
-	);
+    // The command has been defined in the package.json file
+    // Now provide the implementation of the command with registerCommand
+    // The commandId parameter must match the command field in package.json
+    let followMatch = vscode.commands.registerCommand(
+        "vscode-cricket.followMatch",
+        async () => {
+            let matches = await getSummary()
+            let option = await vscode.window.showQuickPick(matches)
+            if (option) {
+                context.globalState.update(followedMatchesKey, option.id)
+                updateMatches(context)
+                statusBarItem.show()
+            }
+        }
+    )
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let followMatch = vscode.commands.registerCommand('vscode-cricket.followMatch', async () => {
-		let matches = await getSummary();
-		let option = await vscode.window.showQuickPick(matches);
-		if(option) {
-			context.globalState.update(followedMatchesKey, option.id);
-			updateMatches(context);
-			statusBarItem.show();
-		}
-	});
+    let stopFollowMatch = vscode.commands.registerCommand(
+        "vscode-cricket.stopFollowMatch",
+        async () => {
+            context.globalState.update(followedMatchesKey, undefined)
+            statusBarItem.hide()
+        }
+    )
+    statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    )
+    context.subscriptions.push(statusBarItem)
 
-	let stopFollowMatch = vscode.commands.registerCommand('vscode-cricket.stopFollowMatch', async () => {
-		context.globalState.update(followedMatchesKey, undefined);
-		statusBarItem.hide();
-	});
-	statusBarItem = vscode.window.createStatusBarItem(
-		vscode.StatusBarAlignment.Right, 100
-	);
-	context.subscriptions.push(statusBarItem);
+    context.subscriptions.push(followMatch)
+    context.subscriptions.push(stopFollowMatch)
 
-	context.subscriptions.push(followMatch);
-	context.subscriptions.push(stopFollowMatch);
+    const updateSeconds = 5
 
-	const updateSeconds = 5;
-
-	setInterval(async () => {
-		updateMatches(context);
-	}, updateSeconds * 1000);
+    setInterval(async () => {
+        updateMatches(context)
+    }, updateSeconds * 1000)
 }
 
 // This method is called when your extension is deactivated
