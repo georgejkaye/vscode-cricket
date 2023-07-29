@@ -49,6 +49,7 @@ export interface Match {
     currentInnings: number
     currentBatting: number
     status: Status
+    statusString : string
     teams: Team[]
     innings: Innings[]
 }
@@ -127,13 +128,15 @@ export const getMatch = async (id : string) => {
     let currentInnings = data.innings.findIndex((inn : any) => inn.live_current_name === "current innings");
     let currentBatting = innings[currentInnings].batting === homeTeam.id ? 0 : 1;
     let status = getStatus(data);
+    let statusString = data.live.status;
     return <Match>{
         balls: deliveries.flat(),
         currentInnings,
         currentBatting,
         teams: [homeTeam, awayTeam],
         innings,
-        status
+        status,
+        statusString
     };
 };
 

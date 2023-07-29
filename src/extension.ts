@@ -3,7 +3,7 @@
 import * as vscode from 'vscode';
 import { getMatch, getSummary, Match, Ball, Event, Team, Innings } from './tasks';
 import { getDismissalString } from './dismissal';
-import { getStatusText } from './status';
+import { Status, getStatusText } from './status';
 
 let statusBarItem : vscode.StatusBarItem;
 
@@ -33,10 +33,15 @@ const updateStatusBarItem = (match : Match) => {
 	const getTeamSummary = (team : Team) => `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`;
 	let summaryText = `${getTeamSummary(match.teams[0])} vs ${getTeamSummary(match.teams[1])}`;
 
-	let shownBalls = match.balls.slice(0, noBallsShown);
-	let shownBallsText = shownBalls.map((ball) => ball.indicator).join(" | ");
+	let statusText = getStatusText(match.status);
+	let resultText = statusText === "Result" ? ` (${match.statusString})` : "";
 
-	statusBarItem.text = `${summaryText} | ${getStatusText(match.status)} | ${shownBallsText} |`;
+	let shownBalls = match.balls.slice(0, noBallsShown);
+	let shownBallsText =
+		match.status === Status.Live ?
+			` | ${shownBalls.map((ball) => ball.indicator).join(" | ")} |` : "";
+
+	statusBarItem.text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`;
 };
 
 const notifyEvent = (event: Event, ball: Ball, match : Match) => {
