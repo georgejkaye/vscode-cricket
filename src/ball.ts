@@ -8,7 +8,6 @@ export enum Extra {
     Bye,
     LegBye,
     Penalty,
-    None,
 }
 
 export const getExtraFromText = (str: string) =>
@@ -22,7 +21,7 @@ export const getExtraFromText = (str: string) =>
         ? Extra.LegBye
         : str === "pen"
         ? Extra.Penalty
-        : Extra.None
+        : undefined
 
 export const getExtraIndicator = (ex: Extra) =>
     ex === Extra.NoBall
@@ -35,7 +34,7 @@ export const getExtraIndicator = (ex: Extra) =>
         ? "lb"
         : ex === Extra.Penalty
         ? "pen"
-        : ""
+        : undefined
 
 export const getExtraName = (ex: Extra) =>
     ex === Extra.NoBall
@@ -48,7 +47,7 @@ export const getExtraName = (ex: Extra) =>
         ? "leg bye"
         : ex === Extra.Penalty
         ? "penalty run"
-        : ""
+        : undefined
 
 export enum Boundary {
     Four,
