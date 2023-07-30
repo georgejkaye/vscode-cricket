@@ -85,6 +85,6 @@ export const getRunsText = (ball: Ball) => {
         ? `${ball.runs} ${getExtraName(ball.extras)}`
         : ball.runs === 0
         ? "no run"
-        : `${ball.runs} runs`
-    ball.runs > 1 ? `${numberText}s` : numberText
+        : `${ball.runs} run`
+    return ball.runs > 1 ? `${numberText}s` : numberText
 }
