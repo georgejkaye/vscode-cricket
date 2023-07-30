@@ -80,11 +80,13 @@ export const getDeliveryText = (ball: Ball) =>
 
 export const getRunsText = (ball: Ball) => {
     let numberText = ball.boundary
-        ? `${getBoundaryName(ball.boundary)} runs`
+        ? `${getBoundaryName(ball.boundary)} run`
         : ball.extras
         ? `${ball.runs} ${getExtraName(ball.extras)}`
         : ball.runs === 0
         ? "no run"
         : `${ball.runs} run`
-    return ball.runs > 1 ? `${numberText}s` : numberText
+    let outText = ball.dismissal ? `OUT, ` : ""
+    let outAndRunText = `${outText}${numberText}`
+    return ball.runs > 1 ? `${outAndRunText}s` : outAndRunText
 }
