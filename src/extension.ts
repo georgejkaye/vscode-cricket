@@ -41,8 +41,17 @@ const getTeamScore = (match: Match, innings: Innings[], team: Team) => {
         .join(" & ")
 }
 
-const updateStatusBarItem = (matches: Match[]) => {
-    for (const match of matches) {
+const getDeliveryNo = (ball: Ball) => `(${ball.deliveryNo})`
+
+const getScoreText = (data: Match) =>
+    `${data.teams[data.currentBatting].shortName} ${getInningsScore(
+        data,
+        getCurrentInnings(data),
+        false
+    )}`
+
+const updateStatusBarItem = (matches: { [key: string]: Match }) => {
+    for (const [id, match] of Object.entries(matches)) {
         const getTeamName = (team: Team) => team.shortName
         const getTeamSummary = (team: Team) =>
             `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`
@@ -144,7 +153,7 @@ const updateMatches = async (context: vscode.ExtensionContext) => {
         context.globalState.get(followedMatchesKey)
     if (currentMatchString) {
         let currentMatches = currentMatchString.split(",")
-        let matches: Match[] = []
+        let matches: { [key: string]: Match } = {}
         let previousMatchesString: string | undefined =
             context.globalState.get(previousMatchesKey)
         let previousMatches: { [key: string]: Match } = previousMatchesString
@@ -153,7 +162,6 @@ const updateMatches = async (context: vscode.ExtensionContext) => {
         for (const currentMatch of currentMatches) {
             let previousMatch = previousMatches[currentMatch]
             let match = await getMatch(currentMatch)
-            matches.push(match)
             if (match.balls.length > 0) {
                 if (previousMatch) {
                     let unseenBalls = match.balls.filter(
@@ -169,6 +177,7 @@ const updateMatches = async (context: vscode.ExtensionContext) => {
                     lastBall.uniqueDeliveryNo
                 )
             }
+            matches[match.id] = match
         }
         updateStatusBarItem(matches)
         let matchesString = JSON.stringify(matches)

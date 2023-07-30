@@ -55,6 +55,7 @@ export const getStatusText = (status: Status) =>
         : ""
 
 export interface Match {
+    id: string
     balls: Ball[]
     currentInnings: number
     currentBatting: number

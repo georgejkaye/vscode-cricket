@@ -103,6 +103,7 @@ export const getMatch = async (id: string) => {
             ? 0
             : 1
     return <Match>{
+        id,
         balls: deliveries.flat(),
         currentInnings,
         currentBatting,
