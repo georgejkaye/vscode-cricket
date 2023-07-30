@@ -70,7 +70,9 @@ export interface Ball {
 
 export const getBallIndicator = (ball: Ball) => {
     let extraIndicator = ball.extras ? getExtraIndicator(ball.extras) : ""
-    return `${ball.runs === 0 ? "•" : ball.runs}${extraIndicator}`
+    return ball.dismissal
+        ? "W"
+        : `${ball.runs === 0 ? "•" : ball.runs}${extraIndicator}`
 }
 
 export const getDeliveryText = (ball: Ball) =>
