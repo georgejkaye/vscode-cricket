@@ -1,4 +1,4 @@
-import { Ball } from "./ball"
+import { Ball, getBallIndicator } from "./ball"
 import { Innings } from "./innings"
 
 export interface Team {
@@ -19,6 +19,7 @@ export enum Status {
     Delayed,
     Other,
     Break,
+    Timeout,
 }
 
 export const getStatus = (data: any) =>
@@ -34,6 +35,8 @@ export const getStatus = (data: any) =>
         ? Status.Lunch
         : data.match.live_state === "Tea"
         ? Status.Tea
+        : data.match.live_state === "Strategic Timeout"
+        ? Status.Timeout
         : data.match.result_short_name === "aban"
         ? Status.Abandoned
         : data.match.live_state.includes("delayed")
@@ -61,6 +64,8 @@ export const getStatusText = (status: Status) =>
         ? "Break"
         : status === Status.Abandoned
         ? "Abandoned"
+        : status === Status.Timeout
+        ? "Timeout"
         : ""
 
 export interface Match {
