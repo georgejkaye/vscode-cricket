@@ -1,9 +1,9 @@
+import { Boundary } from "./ball"
 import { Dismissal } from "./dismissal"
 import { Status, Team } from "./match"
 
 export enum EventType {
-    Four,
-    Six,
+    Boundary,
     Wicket,
     BatterMilestone,
     PartnershipMilestone,
@@ -12,7 +12,8 @@ export enum EventType {
 }
 
 export interface BoundaryEvent {
-    type: EventType.Four | EventType.Six
+    type: EventType.Boundary
+    boundary: Boundary
     batter: string
 }
 

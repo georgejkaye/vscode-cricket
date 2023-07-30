@@ -1,10 +1,14 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from "vscode"
 import { getDismissalString } from "./dismissal"
 import { Match, Status, Team, getStatusText } from "./match"
 import { Innings, InningsStatus } from "./innings"
-import { Ball } from "./ball"
+import {
+    Ball,
+    getBallIndicator,
+    getBoundaryName,
+    getDeliveryText,
+    getRunsText,
+} from "./ball"
 import {
     getBattingTeam,
     getCurrentInnings,
@@ -66,26 +70,35 @@ const updateStatusBarItem = (matches: { [key: string]: Match }) => {
         let shownBalls = match.balls.slice(0, noBallsShown)
         let shownBallsText =
             match.status === Status.Live
-                ? ` | ${shownBalls.map((ball) => ball.indicator).join(" | ")} |`
+                ? ` | ${shownBalls
+                      .map((ball) => getBallIndicator(ball))
+                      .join(" | ")} |`
                 : ""
 
         statusBarItem.text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`
+
+        let tableLines = shownBalls
+            .map(
+                (b) =>
+                    `|${getDeliveryNo(b)}|${getBallIndicator(
+                        b
+                    )}|${getDeliveryText(b)}|`
+            )
+            .join("\n")
+        let tableHeader = "||||\n|-|:-:|-|"
+        let tooltip = new vscode.MarkdownString(`${tableHeader}\n${tableLines}`)
+        statusBarItem.tooltip = tooltip
     }
 }
 
 const notifyEvent = (event: Event, match: Match) => {
     let battingTeam = match.teams[match.currentBatting]
     let currentInnings = match.innings[match.currentInnings]
-    let eventType = event.type
     var text = ""
     switch (event.type) {
-        case EventType.Four:
-            text = `FOUR! (${event.batter}) ${
-                battingTeam.shortName
-            } ${getInningsScore(match, currentInnings, false)}`
-            break
-        case EventType.Six:
-            text = `SIX! (${event.batter}) ${
+        case EventType.Boundary:
+            let boundaryText = getBoundaryName(event.boundary)
+            text = `${boundaryText}! (${event.batter}) ${
                 battingTeam.shortName
             } ${getInningsScore(match, currentInnings, false)}`
             break
@@ -108,12 +121,31 @@ const previousMatchesKey = "previousMatches"
 const handleDelivery = (ball: Ball, match: Match) => {
     let currentInnings = getCurrentInnings(match)
     let currentScore = getInningsScore(match, currentInnings, false)
-    vscode.window.showInformationMessage(
-        `(${ball.deliveryNo}) ${ball.deliveryText} (${ball.runsText}). ${
-            getBattingTeam(match).shortName
-        } are ${currentScore}.`
-    )
-    ball.events.forEach((event) => notifyEvent(event, match))
+    let notificationText = `(${ball.deliveryNo}) ${getDeliveryText(
+        ball
+    )} (${getRunsText(ball)}). ${
+        getBattingTeam(match).shortName
+    } are ${currentScore}.`
+    vscode.window.showInformationMessage(notificationText)
+    if (ball.boundary) {
+        notifyEvent(
+            {
+                type: EventType.Boundary,
+                boundary: ball.boundary,
+                batter: ball.batter,
+            },
+            match
+        )
+    }
+    if (ball.dismissal) {
+        notifyEvent(
+            {
+                type: EventType.Wicket,
+                dismissal: ball.dismissal,
+            },
+            match
+        )
+    }
 }
 
 const generateMultiples = (

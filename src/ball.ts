@@ -2,16 +2,88 @@ import { Dismissal } from "./dismissal"
 import { Status } from "./match"
 import { Event } from "./event"
 
+export enum Extra {
+    NoBall,
+    Wide,
+    Bye,
+    LegBye,
+    Penalty,
+    None,
+}
+
+export const getExtraFromText = (str: string) =>
+    str === "nb"
+        ? Extra.NoBall
+        : str === "wd"
+        ? Extra.Wide
+        : str === "b"
+        ? Extra.Bye
+        : str === "lb"
+        ? Extra.LegBye
+        : str === "pen"
+        ? Extra.Penalty
+        : Extra.None
+
+export const getExtraIndicator = (ex: Extra) =>
+    ex === Extra.NoBall
+        ? "nb"
+        : ex === Extra.Wide
+        ? "w"
+        : ex === Extra.Bye
+        ? "b"
+        : ex === Extra.LegBye
+        ? "lb"
+        : ex === Extra.Penalty
+        ? "pen"
+        : ""
+
+export const getExtraName = (ex: Extra) =>
+    ex === Extra.NoBall
+        ? "no ball"
+        : ex === Extra.Wide
+        ? "wide"
+        : ex === Extra.Bye
+        ? "bye"
+        : ex === Extra.LegBye
+        ? "leg bye"
+        : ex === Extra.Penalty
+        ? "penalty run"
+        : ""
+
+export enum Boundary {
+    Four,
+    Six,
+}
+
+export const getBoundaryName = (boundary: Boundary) =>
+    boundary === Boundary.Four ? "FOUR" : "SIX"
+
 export interface Ball {
-    runs: number
-    indicator: string
-    dismissal: Dismissal | undefined
-    extras: string
     deliveryNo: string
     uniqueDeliveryNo: string
-    deliveryText: string
-    runsText: string
     batter: string
     bowler: string
-    events: Event[]
+    runs: number
+    boundary?: Boundary
+    extras?: Extra
+    dismissal?: Dismissal
+}
+
+export const getBallIndicator = (ball: Ball) => {
+    let extraIndicator = ball.extras ? getExtraIndicator(ball.extras) : ""
+    return `${ball.runs === 0 ? "•" : ball.runs}${extraIndicator}`
+}
+
+export const getDeliveryText = (ball: Ball) =>
+    `${ball.bowler} to ${ball.batter}`
+
+export const getRunsText = (ball: Ball) => {
+    let numberText = ball.boundary
+        ? `${getBoundaryName(ball.boundary)} runs`
+        : ball.extras
+        ? `${ball.runs} ${getExtraName(ball.extras)}`
+        : ball.runs === 0
+        ? "no run"
+        : `${ball.runs} runs`
+    ball.runs > 1 ? `${numberText}s` : numberText
 }

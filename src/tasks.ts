@@ -3,7 +3,7 @@ import { xml2js } from "xml-js"
 import { Dismissal, parseDismissal } from "./dismissal"
 import { Match, Status, Team, getStatus } from "./match"
 import { Innings, getInningsStatus } from "./innings"
-import { Ball } from "./ball"
+import { Ball, Boundary, getExtraFromText } from "./ball"
 import { EventType } from "./event"
 
 const summaryXML = "http://static.cricinfo.com/rss/livescores.xml"
@@ -31,41 +31,34 @@ export const getMatch = async (id: string) => {
         let allOverComms = comms[overNumber].ball
         let overComms = allOverComms.filter((comm: any) => comm.event)
         return over.reverse().map((ball, ballNumber) => {
-            let ballComms = overComms[ballNumber]
-            let extraIndicator = ball.extras === "wd" ? "w" : ball.extras
-            let ballIndicator =
-                ball.ball === "&bull;" ? "•" : `${ball.ball}${extraIndicator}`
+            let ballComms = overCommsBalls[ballNumber]
+            let extras = getExtraFromText(ball.extras)
             let runs =
                 ball.ball === "&bull;" || ball.ball === "W" ? 0 : ball.ball
             let runsText = ballComms.event
-            let events = []
             let deliveryText = ballComms.players
             let deliveryPlayers = deliveryText.split(" to ")
             let bowler: string = deliveryPlayers[0].trim()
             let batter: string = deliveryPlayers[1].trim()
-            if (runsText === "OUT") {
-                let dismissal = parseDismissal(
-                    ballComms.dismissal.replace("  ", " ")
-                )
-                if (dismissal) {
-                    events.push({ type: EventType.Wicket, dismissal })
-                }
-            } else if (runsText === "FOUR") {
-                events.push({ type: EventType.Four, batter })
-            } else if (runsText === "SIX") {
-                events.push({ type: EventType.Six, batter })
-            }
+            let dismissal =
+                ball.dismissal === ""
+                    ? undefined
+                    : parseDismissal(ballComms.dismissal.replace("  ", " "))
+            let boundary =
+                runsText === "FOUR"
+                    ? Boundary.Four
+                    : runsText === "SIX"
+                    ? Boundary.Six
+                    : undefined
             return <Ball>{
-                runs: runs,
-                indicator: ballIndicator,
-                extras: ball.extras,
                 deliveryNo: ballComms.overs_actual,
                 uniqueDeliveryNo: ballComms.overs_unique,
-                deliveryText: deliveryText,
-                runsText,
                 batter,
                 bowler,
-                events,
+                runs,
+                extras,
+                dismissal,
+                boundary,
             }
         })
     })
