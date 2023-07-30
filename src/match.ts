@@ -79,3 +79,6 @@ export const getBattingTeam = (match: Match) =>
 
 export const getCurrentInnings = (match: Match) =>
     match.innings[match.currentInnings]
+
+export const getMatchDescription = (match: Match) =>
+    `${match.teams[0].name} vs ${match.teams[1].name}`
