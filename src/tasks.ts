@@ -27,9 +27,12 @@ export const getMatch = async (id: string) => {
     let comms: any[] = data.comms
     let recentOvers: any[] = data.live.recent_overs
 
-    let deliveries = recentOvers.reverse().map((over: any[], overNumber) => {
-        let allOverComms = comms[overNumber].ball
-        let overComms = allOverComms.filter((comm: any) => comm.event)
+    let deliveries = recentOvers.reverse().map((over: any[]) => {
+        let overNumber = over[0].over_number
+        let overComms = comms.find(
+            (overComm) => overComm.over_number === `${overNumber}`
+        )
+        let overCommsBalls = overComms.ball.filter((comm: any) => comm.event)
         return over.reverse().map((ball, ballNumber) => {
             let ballComms = overCommsBalls[ballNumber]
             let extras = getExtraFromText(ball.extras)
