@@ -10,6 +10,7 @@ export interface Team {
 export enum Status {
     Upcoming,
     Live,
+    Drinks,
     Lunch,
     Tea,
     Stumps,
@@ -27,8 +28,16 @@ export const getStatus = (data: any) =>
         ? Status.Upcoming
         : data.match.live_state === "Stumps"
         ? Status.Stumps
+        : data.match.live_state === "Drinks"
+        ? Status.Drinks
+        : data.match.live_state === "Lunch"
+        ? Status.Lunch
+        : data.match.live_state === "Tea"
+        ? Status.Tea
         : data.match.result_short_name === "aban"
         ? Status.Abandoned
+        : data.match.live_state.includes("delayed")
+        ? Status.Delayed
         : data.match.result === "0"
         ? Status.Live
         : Status.Other
