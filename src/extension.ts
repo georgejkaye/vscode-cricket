@@ -6,6 +6,7 @@ import {
     Team,
     getBattingTeam,
     getCurrentInnings,
+    getMatchDescription,
     getStatusText,
 } from "./match"
 import { Innings, InningsStatus } from "./innings"
@@ -57,7 +58,7 @@ const getScoreText = (data: Match) =>
     )}`
 
 const updateStatusBarItem = (matches: { [key: string]: Match }) => {
-    for (const [id, match] of Object.entries(matches)) {
+    let statusBarText = Object.entries(matches).reduce((acc, [id, match]) => {
         const getTeamName = (team: Team) => team.shortName
         const getTeamSummary = (team: Team) =>
             `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`
@@ -77,19 +78,25 @@ const updateStatusBarItem = (matches: { [key: string]: Match }) => {
                       .join(" | ")} |`
                 : ""
 
-        statusBarItem.text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`
-
-        let tableLines = shownBalls
-            .map(
-                (b) =>
-                    `|${getDeliveryNo(b)}|${getBallIndicator(
-                        b
-                    )}|${getDeliveryText(b)}|`
-            )
-            .join("\n")
-        let tableHeader = "||||\n|-|:-:|-|"
-        let tooltip = new vscode.MarkdownString(`${tableHeader}\n${tableLines}`)
-        statusBarItem.tooltip = tooltip
+        let text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`
+        return `${acc} | ${text}`
+        // let tableLines = shownBalls
+        //     .map(
+        //         (b) =>
+        //             `|${getDeliveryNo(b)}|${getBallIndicator(
+        //                 b
+        //             )}|${getDeliveryText(b)}|`
+        //     )
+        //     .join("\n")
+        // let tableHeader = "||||\n|-|:-:|-|"
+        // let tooltip = new vscode.MarkdownString(`${tableHeader}\n${tableLines}`)
+        // statusBarItem.tooltip = tooltip
+    }, "")
+    statusBarItem.text = statusBarText
+    if (Object.entries(matches).length > 0) {
+        statusBarItem.show()
+    } else {
+        statusBarItem.hide()
     }
 }
 
@@ -106,7 +113,7 @@ const notifyEvent = (event: Event, match: Match) => {
             break
         case EventType.Wicket:
             text = `OUT! ${getDismissalString(event.dismissal)} ${
-                match.teams[currentInnings.batting].shortName
+                getBattingTeam(match).shortName
             } ${getInningsScore(match, currentInnings, false)}`
         default:
             text = ""
@@ -117,8 +124,6 @@ const notifyEvent = (event: Event, match: Match) => {
 }
 
 const followedMatchesKey = "followedMatches"
-const lastDeliveryKey = "lastDelivery"
-const previousMatchesKey = "previousMatches"
 
 const handleDelivery = (ball: Ball, match: Match) => {
     let currentInnings = getCurrentInnings(match)
@@ -183,39 +188,56 @@ const computeEvents = (match: Match, previousMatch: Match) => {
 }
 
 const updateMatches = async (context: vscode.ExtensionContext) => {
-    let currentMatchString: string | undefined =
+    let previousMatches: { [key: string]: Match } | undefined =
         context.globalState.get(followedMatchesKey)
-    if (currentMatchString) {
-        let currentMatches = currentMatchString.split(",")
-        let matches: { [key: string]: Match } = {}
-        let previousMatchesString: string | undefined =
-            context.globalState.get(previousMatchesKey)
-        let previousMatches: { [key: string]: Match } = previousMatchesString
-            ? JSON.parse(previousMatchesString)
-            : []
-        for (const currentMatch of currentMatches) {
-            let previousMatch = previousMatches[currentMatch]
-            let match = await getMatch(currentMatch)
-            if (match.balls.length > 0) {
-                if (previousMatch) {
-                    let unseenBalls = match.balls.filter(
-                        (ball) =>
-                            parseFloat(ball.uniqueDeliveryNo) >
-                            parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
-                    )
-                    unseenBalls.forEach((ball) => handleDelivery(ball, match))
-                }
-                let lastBall = match.balls[0]
-                context.globalState.update(
-                    lastDeliveryKey,
-                    lastBall.uniqueDeliveryNo
+    if (previousMatches) {
+        let newMatches: { [key: string]: Match } = {}
+        for (const [id, previousMatch] of Object.entries(previousMatches)) {
+            let newMatch = await getMatch(id)
+            if (newMatch.balls.length > 0) {
+                let unseenBalls = newMatch.balls.filter(
+                    (ball) =>
+                        parseFloat(ball.uniqueDeliveryNo) >
+                        parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
                 )
+                unseenBalls.forEach((ball) => handleDelivery(ball, newMatch))
             }
-            matches[match.id] = match
+            newMatches[id] = newMatch
         }
-        updateStatusBarItem(matches)
-        let matchesString = JSON.stringify(matches)
-        context.globalState.update(previousMatchesKey, matchesString)
+        updateStatusBarItem(newMatches)
+        context.globalState.update(followedMatchesKey, newMatches)
+    }
+}
+
+const startFollowingMatch = async (
+    context: vscode.ExtensionContext,
+    id: string
+) => {
+    let matches: { [key: string]: Match } | undefined =
+        context.globalState.get(followedMatchesKey)
+    if (matches) {
+        let match = await getMatch(id)
+        let newMatches: { [key: string]: Match } = matches
+        newMatches[id] = match
+        context.globalState.update(followedMatchesKey, newMatches)
+        updateMatches(context)
+    }
+}
+
+const stopFollowingMatch = (
+    context: vscode.ExtensionContext,
+    newId: string
+) => {
+    let matches: { [key: string]: Match } | undefined =
+        context.globalState.get(followedMatchesKey)
+    if (matches) {
+        let newMatchesArray = Object.entries(matches).filter(
+            ([id, match]) => id !== newId
+        )
+        let newMatches: { [key: string]: Match } = {}
+        newMatchesArray.forEach(([id, match]) => (newMatches[id] = match))
+        context.globalState.update(followedMatchesKey, newMatches)
+        updateMatches(context)
     }
 }
 
@@ -228,11 +250,14 @@ export function activate(context: vscode.ExtensionContext) {
         'Congratulations, your extension "vscode-cricket" is now active!'
     )
 
-    context.globalState.setKeysForSync([
-        followedMatchesKey,
-        lastDeliveryKey,
-        previousMatchesKey,
-    ])
+    context.globalState.setKeysForSync([followedMatchesKey])
+    context.globalState.update(followedMatchesKey, {})
+
+    statusBarItem = vscode.window.createStatusBarItem(
+        vscode.StatusBarAlignment.Right,
+        100
+    )
+    context.subscriptions.push(statusBarItem)
 
     // The command has been defined in the package.json file
     // Now provide the implementation of the command with registerCommand
@@ -243,9 +268,7 @@ export function activate(context: vscode.ExtensionContext) {
             let matches = await getSummary()
             let option = await vscode.window.showQuickPick(matches)
             if (option) {
-                context.globalState.update(followedMatchesKey, option.id)
-                updateMatches(context)
-                statusBarItem.show()
+                startFollowingMatch(context, option.id)
             }
         }
     )
@@ -253,16 +276,26 @@ export function activate(context: vscode.ExtensionContext) {
     let stopFollowMatch = vscode.commands.registerCommand(
         "vscode-cricket.stopFollowMatch",
         async () => {
-            context.globalState.update(followedMatchesKey, undefined)
-            statusBarItem.hide()
+            let currentMatches: { [key: string]: Match } | undefined =
+                context.globalState.get(followedMatchesKey)
+            if (currentMatches) {
+                let followedMatchesOptions = Object.entries(currentMatches).map(
+                    ([id, match]) => ({
+                        label: getMatchDescription(match),
+                        id,
+                    })
+                )
+                if (followedMatchesOptions.length > 0) {
+                    let option = await vscode.window.showQuickPick(
+                        followedMatchesOptions
+                    )
+                    if (option) {
+                        stopFollowingMatch(context, option.id)
+                    }
+                }
+            }
         }
     )
-    statusBarItem = vscode.window.createStatusBarItem(
-        vscode.StatusBarAlignment.Right,
-        100
-    )
-    context.subscriptions.push(statusBarItem)
-
     context.subscriptions.push(followMatch)
     context.subscriptions.push(stopFollowMatch)
 
@@ -273,5 +306,4 @@ export function activate(context: vscode.ExtensionContext) {
     }, updateSeconds * 1000)
 }
 
-// This method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate(context: vscode.ExtensionContext) {}
