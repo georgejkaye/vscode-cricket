@@ -90,14 +90,11 @@ const notifyEvent = (event: Event, match: Match) => {
     switch (event.type) {
         case EventType.Boundary:
             let boundaryText = getBoundaryName(event.boundary)
-            text = `${boundaryText}! (${event.batter}) ${
-                battingTeam.shortName
-            } ${getInningsScore(match, currentInnings, false)}`
+            text = `${boundaryText} for ${event.batter}!`
             break
         case EventType.Wicket:
-            text = `OUT! ${getDismissalString(event.dismissal)} ${
-                getBattingTeam(match).shortName
-            } ${getInningsScore(match, currentInnings, false)}`
+            text = `OUT! ${getDismissalString(event.dismissal)}`
+            break
         default:
             text = ""
     }
