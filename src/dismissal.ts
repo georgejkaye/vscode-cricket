@@ -3,7 +3,7 @@ export interface Bowled {
     bowler: string
 }
 
-const bowledRegex = /([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
+const bowledRegex = /([†A-z ]*) (?:\([0-9]*\))* b ([†A-z ]*) ([0-9]*)/
 
 export interface Caught {
     type: "c"
@@ -11,28 +11,31 @@ export interface Caught {
     fielder: string
 }
 
-const caughtRegex = /([†A-z ]*) c ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
+const caughtRegex =
+    /([†A-z ]*) (?:\([0-9]*\))* c ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
 
 export interface CaughtAndBowled {
     type: "cb"
     bowler: string
 }
 
-const caughtAndBowledRegex = /([†A-z ]*) c & b ([†A-z ]*) ([0-9]*)/
+const caughtAndBowledRegex =
+    /([†A-z ]*) (?:\([0-9]*\))* c &amp; b ([†A-z ]*) ([0-9]*)/
 
 export interface Lbw {
     type: "lbw"
     bowler: string
 }
 
-const lbwRegex = /([†A-z ]*) lbw b ([†A-z ]*) ([0-9]*)/
+const lbwRegex = /([†A-z ]*) (?:\([0-9]*\))* lbw b ([†A-z ]*) ([0-9]*)/
 
 export interface RunOut {
     type: "ro"
     fielder: string
 }
 
-const runOutRegex = /([†A-z ]*) run out \(([†A-z ]*)\) ([0-9]*)/
+const runOutRegex =
+    /([†A-z ]*) (?:\([0-9]*\))* run out \(([†A-z ]*) \) ([0-9]*)/
 
 export interface Stumped {
     type: "st"
@@ -40,20 +43,22 @@ export interface Stumped {
     fielder: string
 }
 
-const stumpedRegex = /([†A-z ]*) st ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
+const stumpedRegex =
+    /([†A-z ]*) (?:\([0-9]*\))* st ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
 
 export interface HitWicket {
     type: "hw"
     bowler: string
 }
 
-const hitWicketRegex = /([†A-z ]*) hit wicket ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
+const hitWicketRegex =
+    /([†A-z ]*) (?:\([0-9]*\))* hit wicket ([†A-z ]*) b ([†A-z ]*) ([0-9]*)/
 
 export interface Retired {
     type: "ret"
 }
 
-const retriedRegex = /([†A-z ]*) retired ([0-9]*)/
+const retriedRegex = /([†A-z ]*) (?:\([0-9]*\))* retired ([0-9]*)/
 
 export interface Dismissal {
     dismissal:
@@ -101,20 +106,20 @@ export const getDismissalString = (dis: Dismissal) => {
 }
 
 export const parseDismissal = (dis: string) => {
+    let caughtAndBowled = dis.match(caughtAndBowledRegex)
     let bowled = dis.match(bowledRegex)
     let caught = dis.match(caughtRegex)
-    let caughtAndBowled = dis.match(caughtAndBowledRegex)
     let lbw = dis.match(lbwRegex)
     let runOut = dis.match(runOutRegex)
     let stumped = dis.match(stumpedRegex)
     let hitWicket = dis.match(hitWicketRegex)
     let retired = dis.match(retriedRegex)
-    let batterAndDismissal: any = bowled
+    let batterAndDismissal: any = caughtAndBowled
+        ? [caughtAndBowled[1], { type: "cb", bowler: caughtAndBowled[2] }]
+        : bowled
         ? [bowled[1], { type: "b", bowler: bowled[2] }]
         : caught
         ? [caught[1], { type: "c", fielder: caught[2], bowler: caught[3] }]
-        : caughtAndBowled
-        ? [caughtAndBowled[1], { type: "cb", bowler: caughtAndBowled[2] }]
         : lbw
         ? [lbw[1], { type: "lbw", bowler: lbw[2] }]
         : runOut
