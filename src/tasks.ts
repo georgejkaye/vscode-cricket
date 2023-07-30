@@ -2,7 +2,7 @@ import axios from "axios"
 import { xml2js } from "xml-js"
 import { Dismissal, parseDismissal } from "./dismissal"
 import { Match, Status, Team, getStatus } from "./match"
-import { Innings, getInningsStatus } from "./innings"
+import { Innings, InningsStatus, getInningsStatus } from "./innings"
 import { Ball, Boundary, getExtraFromText } from "./ball"
 import { EventType } from "./event"
 
@@ -79,6 +79,7 @@ export const getMatch = async (id: string) => {
             runs: inn.runs,
             wickets: inn.wickets,
             status: inningsStatus,
+            overs: inn.overs,
         }
         innings.push(inningsObject)
     }

@@ -1,6 +1,7 @@
 import { Status } from "./match"
 
 export enum InningsStatus {
+    Upcoming,
     Ongoing,
     AllOut,
     Declared,
@@ -27,4 +28,18 @@ export interface Innings {
     runs: number
     wickets: number
     status: InningsStatus
+    overs: string
 }
+
+export const getInningsScore = (innings: Innings) =>
+    innings.status === InningsStatus.Upcoming
+        ? ""
+        : innings.status === InningsStatus.Ongoing
+        ? `${innings.runs}/${innings.wickets}* (${innings.overs})`
+        : innings.status === InningsStatus.AllOut
+        ? `${innings.runs}`
+        : innings.status === InningsStatus.Declared
+        ? `${innings.runs}/${innings.wickets}d`
+        : innings.status === InningsStatus.Complete || InningsStatus.Result
+        ? `${innings.runs}/${innings.wickets}`
+        : undefined

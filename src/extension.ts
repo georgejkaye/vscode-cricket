@@ -48,15 +48,6 @@ const getTeamScore = (match: Match, innings: Innings[], team: Team) => {
         .join(" & ")
 }
 
-const getDeliveryNo = (ball: Ball) => `(${ball.deliveryNo})`
-
-const getScoreText = (data: Match) =>
-    `${data.teams[data.currentBatting].shortName} ${getInningsScore(
-        data,
-        getCurrentInnings(data),
-        false
-    )}`
-
 const updateStatusBarItem = (matches: { [key: string]: Match }) => {
     let statusBarText = Object.entries(matches).reduce((acc, [id, match]) => {
         const getTeamName = (team: Team) => team.shortName
