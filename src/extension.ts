@@ -61,15 +61,7 @@ const updateStatusBarItem = (matches: { [key: string]: Match }) => {
         let resultText =
             statusText === "Result" ? ` (${match.statusString})` : ""
 
-        let shownBalls = match.balls.slice(0, noBallsShown)
-        let shownBallsText =
-            match.status === Status.Live
-                ? ` | ${shownBalls
-                      .map((ball) => getBallIndicator(ball))
-                      .join(" | ")} |`
-                : ""
-
-        let text = `${summaryText} | ${statusText}${resultText}${shownBallsText}`
+        let text = `${summaryText} | ${statusText}${resultText}`
         return `${acc} | ${text}`
         // let tableLines = shownBalls
         //     .map(

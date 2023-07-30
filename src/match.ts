@@ -87,3 +87,11 @@ export const getCurrentInnings = (match: Match) =>
 
 export const getMatchDescription = (match: Match) =>
     `${match.teams[0].name} vs ${match.teams[1].name}`
+
+export const getRecentBalls = (match: Match, no: number) => {
+    let shownBalls = match.balls.slice(0, no)
+    let shownBallsText = shownBalls
+        .map((ball) => getBallIndicator(ball))
+        .join(" | ")
+    return shownBallsText
+}
