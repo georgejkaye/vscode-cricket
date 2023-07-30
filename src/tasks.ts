@@ -12,13 +12,6 @@ interface MatchName {
     label: string
     id: string
 }
-
-export const getBattingTeam = (match: Match) =>
-    match.teams[match.currentBatting]
-
-export const getCurrentInnings = (match: Match) =>
-    match.innings[match.currentInnings]
-
 export const getMatch = async (id: string) => {
     let url = `https://www.espncricinfo.com/matches/engine/match/${id}.json`
     let response = await axios.get(url)

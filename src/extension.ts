@@ -1,6 +1,13 @@
 import * as vscode from "vscode"
 import { getDismissalString } from "./dismissal"
-import { Match, Status, Team, getStatusText } from "./match"
+import {
+    Match,
+    Status,
+    Team,
+    getBattingTeam,
+    getCurrentInnings,
+    getStatusText,
+} from "./match"
 import { Innings, InningsStatus } from "./innings"
 import {
     Ball,
@@ -9,12 +16,7 @@ import {
     getDeliveryText,
     getRunsText,
 } from "./ball"
-import {
-    getBattingTeam,
-    getCurrentInnings,
-    getMatch,
-    getSummary,
-} from "./tasks"
+import { getMatch, getSummary } from "./tasks"
 import { EventType, Event, TeamMilestoneEvent } from "./event"
 
 let statusBarItem: vscode.StatusBarItem

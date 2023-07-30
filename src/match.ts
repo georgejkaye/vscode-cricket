@@ -73,3 +73,9 @@ export interface Match {
     teams: Team[]
     innings: Innings[]
 }
+
+export const getBattingTeam = (match: Match) =>
+    match.teams[match.currentBatting]
+
+export const getCurrentInnings = (match: Match) =>
+    match.innings[match.currentInnings]
