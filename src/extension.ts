@@ -25,6 +25,9 @@ let statusBarItem: vscode.StatusBarItem
 const noBallsShown = 6
 
 const getInningsScore = (match: Match, inn: Innings, showOvers: boolean) => {
+    if (inn.status === InningsStatus.Upcoming) {
+        return ""
+    }
     if (inn.status === InningsStatus.AllOut) {
         return `${inn.runs}`
     }
@@ -51,8 +54,12 @@ const getTeamScore = (match: Match, innings: Innings[], team: Team) => {
 const updateStatusBarItem = (matches: { [key: string]: Match }) => {
     let statusBarText = Object.entries(matches).reduce((acc, [id, match]) => {
         const getTeamName = (team: Team) => team.shortName
-        const getTeamSummary = (team: Team) =>
-            `${getTeamName(team)} ${getTeamScore(match, match.innings, team)}`
+        const getTeamSummary = (team: Team) => {
+            let teamScore = getTeamScore(match, match.innings, team)
+            let teamScoreString = teamScore === "" ? "" : ` ${teamScore}`
+            return `${getTeamName(team)}${teamScoreString}`
+        }
+
         let summaryText = `${getTeamSummary(
             match.teams[0]
         )} vs ${getTeamSummary(match.teams[1])}`

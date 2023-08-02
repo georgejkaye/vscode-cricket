@@ -16,6 +16,8 @@ export const getInningsStatus = (innings: any, matchStatus: Status) =>
         ? InningsStatus.Declared
         : innings.event_name === "complete"
         ? InningsStatus.Complete
+        : innings.live_current === 0 && innings.overs === "0.0"
+        ? InningsStatus.Upcoming
         : innings.live_current === 0
         ? InningsStatus.Complete
         : innings.live_current === 1 && matchStatus === Status.Result
