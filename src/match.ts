@@ -41,6 +41,8 @@ export const getStatus = (data: any) =>
         ? Status.Abandoned
         : data.match.live_state.includes("delayed")
         ? Status.Delayed
+        : data.match.live_state === "Innings break"
+        ? Status.Break
         : data.match.result === "0"
         ? Status.Live
         : Status.Other
