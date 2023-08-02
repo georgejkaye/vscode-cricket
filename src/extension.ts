@@ -18,7 +18,7 @@ import {
     getRunsText,
 } from "./ball"
 import { getMatch, getSummary } from "./tasks"
-import { EventType, Event, TeamMilestoneEvent } from "./event"
+import { EventType, Event, TeamMilestoneEvent, getEventText } from "./event"
 
 let statusBarItem: vscode.StatusBarItem
 
@@ -91,8 +91,6 @@ const updateStatusBarItem = (matches: { [key: string]: Match }) => {
 }
 
 const notifyEvent = (event: Event, match: Match) => {
-    let battingTeam = match.teams[match.currentBatting]
-    let currentInnings = match.innings[match.currentInnings]
     var text = ""
     switch (event.type) {
         case EventType.Boundary:
@@ -159,6 +157,9 @@ const computeEvents = (match: Match, previousMatch: Match) => {
     let events: Event[] = []
     let currentInnings = getCurrentInnings(match)
     let previousInnings = getCurrentInnings(previousMatch)
+    if (match.status !== previousMatch.status) {
+        events.push({ type: EventType.StatusChange, status: match.status })
+    }
     // Team milestones
     let runMultiples = generateMultiples(
         currentInnings.runs,
@@ -187,9 +188,16 @@ const updateMatches = async (context: vscode.ExtensionContext) => {
                         parseFloat(ball.uniqueDeliveryNo) >
                         parseFloat(previousMatch.balls[0].uniqueDeliveryNo)
                 )
-                unseenBalls.forEach((ball) => handleDelivery(ball, newMatch))
+                for (const ball of unseenBalls) {
+                    handleDelivery(ball, newMatch)
+                }
+                newMatches[id] = newMatch
+                let events = computeEvents(newMatch, previousMatch)
+                for (const event of events) {
+                    let eventText = getEventText(event)
+                    vscode.window.showInformationMessage(eventText)
+                }
             }
-            newMatches[id] = newMatch
         }
         updateStatusBarItem(newMatches)
         context.globalState.update(followedMatchesKey, newMatches)

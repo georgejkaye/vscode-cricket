@@ -53,3 +53,7 @@ export type Event =
     | PartnershipMilestoneEvent
     | TeamMilestoneEvent
     | StatusChangeEvent
+
+export const getEventText = (e: Event) => {
+    return "Event happened"
+}
